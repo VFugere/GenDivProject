@@ -10,6 +10,8 @@ library(magrittr)
 #library(svMisc)
 #library(readxl)
 
+#list of special characters which could occur in species names
+#things we want to remove (ie species containing these symbols are discarded)
 unwanted <- c('\\.',0:9,'BOLD','-','#','_nsp','spnov')
 unwanted <- paste(unwanted, collapse = '|')
 
