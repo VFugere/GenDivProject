@@ -1,6 +1,11 @@
 #### Temporal variation in intra-specific neutral genetic diversity across anthromes
-#### Gonzalez Lab project - McGill University - 2016-2017
+#### Gonzalez Lab project - McGill University - 2016-2018
 #### Script by Vincent Fugère
+
+## This script takes pairwise sequence comparions and compute a mean genetic
+## diversity value for each species x year x grid cell combination (population)
+## Also adds land use and human density values to each gen div value,
+## using latest land use map available
 
 #### Part I: load and format data
 
@@ -261,16 +266,6 @@ pop.dur <- aggregate(div~pop, insect08.agg, FUN=length)
 insect08.agg$n.years <- pop.dur$div[match(insect08.agg$pop,pop.dur$pop)]
 rm(pop.dur)
 
-#gather data summary statistics
-summ08 <- data.frame('taxon'=c('mammals','birds','fish','insects'),
-                     'nb.sequences' = numeric(4),
-                     'nb.species' = numeric(4),
-                     'nb.pops' = numeric(4))
-summ08[1,2:4] <- c(sum(mam08.agg$nseqs),length(levels(mam08.agg$species)),length(levels(mam08.agg$pop)))
-summ08[2,2:4] <- c(sum(aves08.agg$nseqs),length(levels(aves08.agg$species)),length(levels(aves08.agg$pop)))
-summ08[3,2:4] <- c(sum(acti08.agg$nseqs),length(levels(acti08.agg$species)),length(levels(acti08.agg$pop)))
-summ08[4,2:4] <- c(sum(insect08.agg$nseqs),length(levels(insect08.agg$species)),length(levels(insect08.agg$pop)))
-
 #cleanup
 rm(i,row2rm,acti08,aves08,insect08,mam08,lu.map)
 
@@ -513,16 +508,6 @@ pop.dur <- aggregate(div~pop, insect1.agg, FUN=length)
 insect1.agg$n.years <- pop.dur$div[match(insect1.agg$pop,pop.dur$pop)]
 rm(pop.dur)
 
-#gather data summary statistics
-summ1 <- data.frame('taxon'=c('mammals','birds','fish','insects'),
-                     'nb.sequences' = numeric(4),
-                     'nb.species' = numeric(4),
-                     'nb.pops' = numeric(4))
-summ1[1,2:4] <- c(sum(mam1.agg$nseqs),length(levels(mam1.agg$species)),length(levels(mam1.agg$pop)))
-summ1[2,2:4] <- c(sum(aves1.agg$nseqs),length(levels(aves1.agg$species)),length(levels(aves1.agg$pop)))
-summ1[3,2:4] <- c(sum(acti1.agg$nseqs),length(levels(acti1.agg$species)),length(levels(acti1.agg$pop)))
-summ1[4,2:4] <- c(sum(insect1.agg$nseqs),length(levels(insect1.agg$species)),length(levels(insect1.agg$pop)))
-
 #cleanup
 rm(i,row2rm,acti1,aves1,insect1,mam1,lu.map)
 
@@ -763,16 +748,6 @@ insect2.agg$sp_yr <- as.factor(paste(insect2.agg$species,insect2.agg$year,sep='_
 pop.dur <- aggregate(div~pop, insect2.agg, FUN=length)
 insect2.agg$n.years <- pop.dur$div[match(insect2.agg$pop,pop.dur$pop)]
 rm(pop.dur)
-
-#gather data summary statistics
-summ2 <- data.frame('taxon'=c('mammals','birds','fish','insects'),
-                     'nb.sequences' = numeric(4),
-                     'nb.species' = numeric(4),
-                     'nb.pops' = numeric(4))
-summ2[1,2:4] <- c(sum(mam2.agg$nseqs),length(levels(mam2.agg$species)),length(levels(mam2.agg$pop)))
-summ2[2,2:4] <- c(sum(aves2.agg$nseqs),length(levels(aves2.agg$species)),length(levels(aves2.agg$pop)))
-summ2[3,2:4] <- c(sum(acti2.agg$nseqs),length(levels(acti2.agg$species)),length(levels(acti2.agg$pop)))
-summ2[4,2:4] <- c(sum(insect2.agg$nseqs),length(levels(insect2.agg$species)),length(levels(insect2.agg$pop)))
 
 #cleanup
 rm(i,row2rm,acti2,aves2,insect2,mam2,lu.map)
@@ -1015,16 +990,6 @@ pop.dur <- aggregate(div~pop, insect4.agg, FUN=length)
 insect4.agg$n.years <- pop.dur$div[match(insect4.agg$pop,pop.dur$pop)]
 rm(pop.dur)
 
-#gather data summary statistics
-summ4 <- data.frame('taxon'=c('mammals','birds','fish','insects'),
-                     'nb.sequences' = numeric(4),
-                     'nb.species' = numeric(4),
-                     'nb.pops' = numeric(4))
-summ4[1,2:4] <- c(sum(mam4.agg$nseqs),length(levels(mam4.agg$species)),length(levels(mam4.agg$pop)))
-summ4[2,2:4] <- c(sum(aves4.agg$nseqs),length(levels(aves4.agg$species)),length(levels(aves4.agg$pop)))
-summ4[3,2:4] <- c(sum(acti4.agg$nseqs),length(levels(acti4.agg$species)),length(levels(acti4.agg$pop)))
-summ4[4,2:4] <- c(sum(insect4.agg$nseqs),length(levels(insect4.agg$species)),length(levels(insect4.agg$pop)))
-
 #cleanup
 rm(i,row2rm,acti4,aves4,insect4,mam4,lu.map)
 
@@ -1034,13 +999,6 @@ acti4.agg <- as.data.frame(acti4.agg)
 insect4.agg <- as.data.frame(insect4.agg)
 
 #### saving results ####
-
-data.summ <- rbind(summ08,summ1,summ2,summ4)
-data.summ$scale <- c(rep(0.08,4),rep(1,4),rep(2,4),rep(4,4))
-data.summ <- data.summ[,c(5,1:4)]
-write.csv(data.summ,'~/Google Drive/Recherche/Intraspecific genetic diversity/gendiv_data_summary.csv',row.names=F)
-
-rm(summ08,summ1,summ2,summ4)
 
 rm(fname, map.yrs, path, unwanted, map.yr.idx)
 
