@@ -18,8 +18,9 @@ library(rphylopic)
 library(gstat)
 library(sp)
 library(rworldmap)
-source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/Zuur.R')
-source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
+library(writexl)
+#source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/Zuur.R')
+#source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
 
 #load data
 load('/Users/vincentfugere/Google Drive/Recherche/Intraspecific genetic diversity/intrasp_gen_div.RData')
@@ -44,7 +45,7 @@ phylopic.ids <- c('b36a215a-adb3-445d-b364-1e63dddd6950','42fdc3cb-37fc-4340-bdf
 # hist(aves4.agg$year, main='birds')
 # hist(acti4.agg$year, main='fish')
 # hist(insect4.agg$year, main='insects')
-# #above 1980 for all, only excluding old fish
+# #above 1980 for all, only excluding old fish. LU map goes back to 1980 anyways.
 
 # #should we exclude div estimates with only a few data points?
 # par(mfrow=c(4,4))
@@ -105,40 +106,24 @@ for(i in 1:length(scales)){
 
 alldata %<>% select(scale,tax,pop,species:long)
 
-# #for Chloe's map
+# #for Chloe's map (Fig. 1a)
 # fig1data <- alldata %>% group_by(scale,tax,cell,year) %>% summarize(sequences = sum(nseqs))
 # save(fig1data, file = '~/Desktop/ChloeDat.Rdata')
 
-#for Table S1
-unwanted <- c('\\.',0:9,'BOLD','-','#','_nsp','spnov')
-unwanted <- paste(unwanted, collapse = '|')
-table1 <- alldata %>% #filter(str_count(alldata$species, '_') == 1, str_count(alldata$species, unwanted) == 0) %>%
-  group_by(scale,tax) %>% summarize(seqs = sum(nseqs), pops = n_distinct(pop), sp = n_distinct(species))
-write_csv(table1, '~/Desktop/table1.csv')
+#for Table S1 : note that for paper, we 
+table1 <- alldata %>% group_by(scale,tax) %>%
+  summarize(sequences = sum(nseqs), populations = n_distinct(pop), species = n_distinct(species)) %>%
+  rename('taxon' = tax)
+write_xlsx(table1, '~/Desktop/table1.xlsx')
 
-#### figure 1 panels ####
+#### figure 1 time series panel ####
 
-# inset in (a). Correlation between sequence number and population/species number
-# in supp mat 
-plodat <- alldata %>% filter(scale == '08') %>% distinct(pop, .keep_all = T) %>% 
-  group_by(cell) %>%
-  summarize(nspecies = n(), nseqs = sum(nseqs))
-#pdf('~/Desktop/seq_sp_correl.svg', pointsize = 5, width = 1.5, height=1.5)
-plot(nspecies~nseqs,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',log='xy')
-title(ylab='species', cex.lab=1)
-title(xlab='sequences', cex.lab=1)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-points(nspecies~nseqs,plodat,pch=16,cex=0.3,col=alpha(1,0.2))
-legend('topleft',legend = bquote(italic(r[S]) == .(round(cor(plodat$nspecies,plodat$nseqs,method='spearman'),2))),bty='n',cex=1)
-#dev.off()
+pdf('~/Desktop/1b.pdf', pointsize = 8, width = 4, height=3)
 
-# panel b: temporal bias in sequence availability
 plodat <- alldata %>% filter(scale == '08') %>% 
   group_by(tax,year) %>%
   summarize(npops = n(), nseqs = sum(nseqs)) %>%
   mutate(ptcx = rescale(npops,c(0.5,2.5)))
-#pdf('~/Desktop/1b.pdf', pointsize = 6, width = 3.25, height=2.3)
 plot(nseqs~year,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',ylim=c(0,10.2),xlim=c(1980,2018))
 title(ylab='number of sequences', cex.lab=1)
 title(xlab='year', cex.lab=1)
@@ -149,20 +134,67 @@ axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(1985,1995,2005,2015))
 for(j in 1:4){
   y <- filter(plodat, tax == taxa[j]) %>% as.data.frame
   y$nseqs <- log(y$nseqs)
-  points(nseqs~year,y,pch=1,type='p',cex=ptcx,col=alpha(cols[j],1),lwd=0.5)
+  #points(nseqs~year,y,pch=1,type='p',cex=ptcx,col=alpha(cols[j],1),lwd=0.5)
   points(nseqs~year,y,pch=16,type='l',lwd=1.2,col=alpha(cols[j],1))
 }
-xlocs<-seq(from=0.4,to=0.8,length.out = 4)
-ylocs<-log(c(2,25,42,475))/10.2
-ylocs[2] <- ylocs[2] - 0.06
-ylocs[3] <- ylocs[3] + 0.02
+# xlocs<-seq(from=0.4,to=0.8,length.out = 4)
+# ylocs<-log(c(2,25,42,475))/10.2
+# ylocs[2] <- ylocs[2] - 0.06
+# ylocs[3] <- ylocs[3] + 0.02
+# for(j in 1:4){
+#   label <- image_data(phylopic.ids[j], size = 128)[[1]]
+#   add_phylopic_base(label, x = 0.94, y = ylocs[j], ysize = 0.15, alpha=1,color=cols[j])
+# }
+#legs <- c('1 population','1500 populations','3500 populations')
+#legend('topleft',x.intersp=1.5,inset=c(0.05,-0.02),bty='n',cex=1,pch=16,col=1,pt.cex=rev(c(0.500000,1.345460,2.473491)),legend=rev(legs),y.intersp = 1.2)
+dev.off()
+
+#### figure S1 ####
+
+pdf('~/Desktop/FigS1.pdf',  pointsize = 8, width = 3.25, height=5.5)
+par(mfrow=c(3,1),cex=1,mar=c(4,4,1,1))
+
+# (a). Correlation between sequence number and population/species number
+plodat <- alldata %>% filter(scale == '08') %>% distinct(pop, .keep_all = T) %>% 
+  group_by(cell) %>%
+  summarize(nspecies = n(), nseqs = sum(nseqs))
+plot(nspecies~nseqs,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',log='xy')
+title(ylab='species', cex.lab=1)
+title(xlab='sequences', cex.lab=1)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+points(nspecies~nseqs,plodat,pch=16,cex=0.3,col=alpha(1,0.4))
+legend('topleft',legend = bquote(italic(r[S]) == .(round(cor(plodat$nspecies,plodat$nseqs,method='spearman'),2))),bty='n',cex=1)
+
+# (b,c) accumulation of populations and species in dataset over time
+
+plodat <- alldata %>% filter(scale == '08') %>% 
+  group_by(tax,year) %>%
+  summarize(nspecies = n_distinct(species), npops = n(), nseqs = sum(nseqs))
+  
+plot(nspecies~year,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',ylim=c(0,7.5),xlim=c(1980,2018))
+title(ylab='number of species', cex.lab=1)
+title(xlab='year', cex.lab=1)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,labels = c(1,10,100,1000),at=log(c(1,10,100,1000)))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(1985,1995,2005,2015))
 for(j in 1:4){
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.94, y = ylocs[j], ysize = 0.15, alpha=1,color=cols[j])
+  y <- filter(plodat, tax == taxa[j]) %>% as.data.frame
+  y$nspecies <- log(y$nspecies)
+  points(nspecies~year,y,pch=16,type='l',lwd=1.2,col=alpha(cols[j],1))
 }
-legs <- c('1 population','1500 populations','3500 populations')
-legend('topleft',x.intersp=1.5,inset=c(0.05,-0.02),bty='n',cex=1,pch=16,col=1,pt.cex=rev(c(0.500000,1.345460,2.473491)),legend=rev(legs),y.intersp = 1.2)
-#dev.off()
+
+plot(npops~year,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',ylim=c(0,8.5),xlim=c(1980,2018))
+title(ylab='number of sequences', cex.lab=1)
+title(xlab='year', cex.lab=1)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,labels = c(1,10,100,1000),at=log(c(1,10,100,1000)))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(1985,1995,2005,2015))
+for(j in 1:4){
+  y <- filter(plodat, tax == taxa[j]) %>% as.data.frame
+  y$npops <- log(y$npops)
+  points(npops~year,y,pch=16,type='l',lwd=1.2,col=alpha(cols[j],1))
+}
+
+dev.off()
 
 #### figure 2 ####
 
