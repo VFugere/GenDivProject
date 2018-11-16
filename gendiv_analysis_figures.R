@@ -151,7 +151,7 @@ dev.off()
 
 #### figure S1 ####
 
-pdf('~/Desktop/FigS1.pdf',  pointsize = 8, width = 3.25, height=5.5)
+#pdf('~/Desktop/FigS1.pdf',  pointsize = 8, width = 3.25, height=5.5)
 par(mfrow=c(3,1),cex=1,mar=c(4,4,1,1))
 
 # (a). Correlation between sequence number and population/species number
@@ -194,7 +194,7 @@ for(j in 1:4){
   points(npops~year,y,pch=16,type='l',lwd=1.2,col=alpha(cols[j],1))
 }
 
-dev.off()
+#dev.off()
 
 #### figure 2 ####
 
@@ -283,9 +283,27 @@ for(j in 1:4){
   title(ylab='mean genetic diversity', cex.lab=1)
   title(xlab='year', cex.lab=1)
 }
-#mtext(text='mean genetic diversity', cex=1 ,side=2,line=1,outer=T)
-#mtext(text='year', cex=1 ,side=1,line=1,outer=T)
 #dev.off()
+
+pdf('~/Desktop/Fig2b.pdf',width=2.5,height = 7, pointsize=8)
+par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(4,4,1,1),cex=1)
+for(j in 1:4){
+  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% group_by(year) %>%
+    summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>% filter(!is.na(ci)) %>% as.data.frame()
+  plot(mean~year,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=range(c(y$mean-y$ci,y$mean+y$ci)))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  y$lwr <- y$mean - y$ci
+  y$upr <- y$mean + y$ci
+  arrows(x0=y$year,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
+  points(mean~year,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
+  lines(smooth.spline(y=y$mean,x=y$year,spar=0.6),lwd=3,col=alpha(1,0.4))
+  label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  title(ylab='mean genetic diversity', cex.lab=1)
+  title(xlab='year', cex.lab=1)
+}
+dev.off()
 
 #supp figure
 #pdf('~/Desktop/supp_lat_grad.pdf',pointsize = 6, width=4,height=4)
