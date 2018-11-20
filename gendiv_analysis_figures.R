@@ -531,8 +531,8 @@ for(i in 1:length(scales)){
   }
 }
 
-#save data
-save(modeldata, file = '~/Google Drive/Recherche/Intraspecific genetic diversity/modeldata.Rdata')
+# #save data
+# save(modeldata, file = '~/Google Drive/Recherche/Intraspecific genetic diversity/modeldata.Rdata')
 
 #### Model selection with sequential deletion of non significant terms ####
 
@@ -543,6 +543,11 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models08.
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models1.Rdata')
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models2.Rdata')
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models4.Rdata')
+
+#https://stackoverflow.com/questions/42139772/tidy-output-from-many-single-variable-models-using-purrr-broom
+
+map_df(~tidy(models08)) %>%
+  filter(term !="(Intercept)")
 
 #### Caterpillar plot (Figure 3) ####
 
@@ -642,13 +647,10 @@ coefs <- data.frame('scale' = numeric(0),
                     'long:HD' = numeric(0),
                     'scale' = numeric(0))
 
-load(file = paste0('~/Desktop/CPGLMMs/models',scales[i],'.Rdata'))
 models <- get(paste0('models',scales[i]))
 fixef(models[[1]])
 
 coefs$scale <- c(rep(0.08,nrow(results)),rep(1,nrow(results)),rep(2,nrow(results)),rep(4,nrow(results)))
-
-#coefs <- read_csv('~/Google Drive/Recherche/Intraspecific genetic diversity/models_p.lu.csv')
 
 coefs$y.lwr <- coefs$year - coefs$year.ci
 coefs$y.upr <- coefs$year + coefs$year.ci
