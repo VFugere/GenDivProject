@@ -22,6 +22,14 @@ library(writexl)
 #source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/Zuur.R')
 #source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
 
+#from https://www.r-bloggers.com/finding-the-midpoint-when-creating-intervals/
+midpoints <- function(x, dp=2){
+  lower <- as.numeric(gsub(',.*','',gsub('\\(|\\[|\\)|\\]','', x)))
+  upper <- as.numeric(gsub('.*,','',gsub('\\(|\\[|\\)|\\]','', x)))
+  return(round(lower+(upper-lower)/2, dp))
+}
+
+
 #load data
 load('/Users/vincentfugere/Google Drive/Recherche/Intraspecific genetic diversity/intrasp_gen_div.RData')
 
@@ -34,12 +42,12 @@ file.tag <- 'newmaps' #character string to append to files
 
 #useful for indexing and plotting
 #cols <- brewer.pal(4,'Dark2')[c(1,3,4,2)]
-cols <- c('#636363','#969696','#cccccc','#252525')
-taxa <- c('mammals','birds','fish','insects')
+cols <- c('#969696','#cccccc','#252525','#636363')
+taxa <- c('birds','fish','insects','mammals')
 scales <- c('08','1','2','4')
-shortax <- c('mam','aves','acti','insect')
+shortax <- c('aves','acti','insect','mam')
 map <- getMap(resolution = "coarse")
-phylopic.ids <- c('b36a215a-adb3-445d-b364-1e63dddd6950','42fdc3cb-37fc-4340-bdf9-eed8e050137c','7a6448e5-09c4-40c8-8378-599d7f974bfe','5aeaf558-3c48-4173-83b4-dbf2846f8d75')
+phylopic.ids <- c('42fdc3cb-37fc-4340-bdf9-eed8e050137c','7a6448e5-09c4-40c8-8378-599d7f974bfe','5aeaf558-3c48-4173-83b4-dbf2846f8d75','b36a215a-adb3-445d-b364-1e63dddd6950')
 # #which years to use?
 # hist(mam4.agg$year, main='mammals')
 # hist(aves4.agg$year, main='birds')
@@ -104,7 +112,10 @@ for(i in 1:length(scales)){
 # plot(lut2~lut1,pixdat, main = '1991-1999',xlab='land use 1990', ylab='land use 2000'); abline(a=0,b=1,lty=2)
 # plot(log1p(pop_tot.y)~log1p(pop_tot.x),pixdat, main = '1991-1999',xlab='log human density 1990', ylab='log human density 2000'); abline(a=0,b=1,lty=2)
 
-alldata %<>% select(scale,tax,pop,species:long)
+alldata %<>% mutate(p.lu = rowSums(select(.,types.lu)))
+alldata[alldata$p.lu > 1,'p.lu'] <- 1
+
+alldata %<>% select(scale,tax,pop,species:long,p.lu,pop_tot)
 
 # #for Chloe's map (Fig. 1a)
 # fig1data <- alldata %>% group_by(scale,tax,cell,year) %>% summarize(sequences = sum(nseqs))
@@ -114,11 +125,11 @@ alldata %<>% select(scale,tax,pop,species:long)
 table1 <- alldata %>% group_by(scale,tax) %>%
   summarize(sequences = sum(nseqs), populations = n_distinct(pop), species = n_distinct(species)) %>%
   rename('taxon' = tax)
-write_xlsx(table1, '~/Desktop/table1.xlsx')
+#write_xlsx(table1, '~/Desktop/table1.xlsx')
 
 #### figure 1 time series panel ####
 
-pdf('~/Desktop/1b.pdf', pointsize = 8, width = 4, height=3)
+#pdf('~/Desktop/1b.pdf', pointsize = 8, width = 4, height=3)
 
 plodat <- alldata %>% filter(scale == '08') %>% 
   group_by(tax,year) %>%
@@ -147,7 +158,7 @@ for(j in 1:4){
 # }
 #legs <- c('1 population','1500 populations','3500 populations')
 #legend('topleft',x.intersp=1.5,inset=c(0.05,-0.02),bty='n',cex=1,pch=16,col=1,pt.cex=rev(c(0.500000,1.345460,2.473491)),legend=rev(legs),y.intersp = 1.2)
-dev.off()
+#dev.off()
 
 #### figure S1 ####
 
@@ -206,7 +217,7 @@ par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1)
 #cols3<-rev(c("#A60000", "#FF1500", "#FF9100", "#FAFA32", "#B9FF40", "#2EA610", "#03769C", "#003D61"))
 cols3<-rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
 
-max.div <- c(0.016,0.008,0.016,0.024)
+max.div <- c(0.008,0.016,0.024,0.016)
 
 for(j in 1:4){
   dat <- get(paste(shortax[j],scales[4],'.agg',sep=''))
@@ -261,31 +272,31 @@ for(j in 1:4){
 #   add_phylopic_base(label, x = 0.9, y = 0.8, ysize = 0.15, alpha=1,color=1)
 # }
 
-#panel b) global time series
-#pdf('~/Desktop/Fig2b.pdf',width=2.5,height = 7, pointsize=6)
-#par(mfrow=c(4,1),oma=c(3,3,0,0),mar=c(2,2,1,1),cex=1)
-par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(4,4,1,1),cex=1)
-for(j in 1:4){
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% group_by(year) %>%
-  summarise(mean = mean(div),se = sd(div)/sqrt(n()), n = n()) %>% filter(!is.na(se)) %>% as.data.frame()
-  plot(mean~year,y,type='n',ylim=c(0,0.025),yaxt='n',xaxt='n',ann=F,bty='n')
-  box(bty='l')
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-  polygon(x=c(y$year,rev(y$year)),y=c((y$mean-1.96*y$se),rev(y$mean+1.96*y$se)),col=alpha(1,0.3),border=NA)
-  #points(mean~year,y,pch=1,type='o',cex=rescale(y$n,c(0.5,2.5)))
-  points(mean~year,y,pch=1,type='l')
-  #text(x=y$year,y=y$mean*1.4,labels=as.character(y$n),pos=3,cex=0.6,srt=90)
-  #legs <- paste(as.character(c(min(y$n),max(y$n))),'populations')
-  #legend('topleft',inset=0.01,box.col = alpha('white',0.5),box.lwd=0,bg='white',pch=16,col=1,pt.cex=c(0.5,2.5),legend=legs,y.intersp = 2.5)
-  #label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  #add_phylopic_base(label, x = 0.5, y = 0.9, ysize = 0.25, alpha=1,color='black')
-  title(ylab='mean genetic diversity', cex.lab=1)
-  title(xlab='year', cex.lab=1)
-}
-#dev.off()
+# #panel b) global time series
+# #pdf('~/Desktop/Fig2b.pdf',width=2.5,height = 7, pointsize=6)
+# #par(mfrow=c(4,1),oma=c(3,3,0,0),mar=c(2,2,1,1),cex=1)
+# par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(4,4,1,1),cex=1)
+# for(j in 1:4){
+#   y <- filter(alldata, scale == '4', tax == taxa[j]) %>% group_by(year) %>%
+#   summarise(mean = mean(div),se = sd(div)/sqrt(n()), n = n()) %>% filter(!is.na(se)) %>% as.data.frame()
+#   plot(mean~year,y,type='n',ylim=c(0,0.025),yaxt='n',xaxt='n',ann=F,bty='n')
+#   box(bty='l')
+#   axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+#   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+#   polygon(x=c(y$year,rev(y$year)),y=c((y$mean-1.96*y$se),rev(y$mean+1.96*y$se)),col=alpha(1,0.3),border=NA)
+#   #points(mean~year,y,pch=1,type='o',cex=rescale(y$n,c(0.5,2.5)))
+#   points(mean~year,y,pch=1,type='l')
+#   #text(x=y$year,y=y$mean*1.4,labels=as.character(y$n),pos=3,cex=0.6,srt=90)
+#   #legs <- paste(as.character(c(min(y$n),max(y$n))),'populations')
+#   #legend('topleft',inset=0.01,box.col = alpha('white',0.5),box.lwd=0,bg='white',pch=16,col=1,pt.cex=c(0.5,2.5),legend=legs,y.intersp = 2.5)
+#   #label <- image_data(phylopic.ids[j], size = 128)[[1]]
+#   #add_phylopic_base(label, x = 0.5, y = 0.9, ysize = 0.25, alpha=1,color='black')
+#   title(ylab='mean genetic diversity', cex.lab=1)
+#   title(xlab='year', cex.lab=1)
+# }
+# #dev.off()
 
-pdf('~/Desktop/Fig2b.pdf',width=2.5,height = 7, pointsize=8)
+#pdf('~/Desktop/Fig2b.pdf',width=2.5,height = 7, pointsize=8)
 par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(4,4,1,1),cex=1)
 for(j in 1:4){
   y <- filter(alldata, scale == '4', tax == taxa[j]) %>% group_by(year) %>%
@@ -303,20 +314,21 @@ for(j in 1:4){
   title(ylab='mean genetic diversity', cex.lab=1)
   title(xlab='year', cex.lab=1)
 }
-dev.off()
+#dev.off()
 
-#supp figure
-#pdf('~/Desktop/supp_lat_grad.pdf',pointsize = 6, width=4,height=4)
-par(mfrow=c(2,2),oma=c(3,3,0,0),mar=c(2,2,1,1),cex=1)
+#### Fig. S2: other drivers of gen div ####
+
+pdf('~/Desktop/FigS2.pdf',pointsize = 8, width=8,height=8)
+par(mfrow=c(4,4),oma=c(0,2.5,0,0),cex=1,mar=c(4,2,1,1))
+
+#latitude
 for(j in 1:4){
-  #y <- filter(alldata, scale == '08', tax == taxa[j]) %>% as.data.frame()
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% group_by(lat) %>%
+  y <- filter(alldata, scale == '4', tax == taxa[j]) %>%
+    mutate(lat = abs(lat)) %>% group_by(lat) %>%
     summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>% filter(!is.na(ci)) %>% as.data.frame()
-  #plot(div~lat,y,type='n',yaxt='n',xaxt='n',ann=F,bty='n',ylim=c(0,quantile(y$div,seq(0,1,by=0.01))[97]))
-  plot(mean~lat,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=range(c(y$mean-y$ci,y$mean+y$ci)))
+  plot(mean~lat,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-  #points(div~lat,y,pch=16,cex=0.5,col=alpha(cols[j],0.2))
   y$lwr <- y$mean - y$ci
   y$upr <- y$mean + y$ci
   arrows(x0=y$lat,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
@@ -324,13 +336,71 @@ for(j in 1:4){
   lines(smooth.spline(y=y$mean,x=y$lat,spar=0.6),lwd=3,col=alpha(1,0.4))
   label <- image_data(phylopic.ids[j], size = 128)[[1]]
   add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  title(xlab='absolute latitude (degrees)', cex.lab=1.3, line=2.7)
 }
-mtext(text='genetic diversity', cex=1.2 ,side=2,line=1,outer=T)
-mtext(text='latitude', cex=1.2 ,side=1,line=1,outer=T)
-#dev.off()
 
-# #### modelling global trend: figure 3 ####
-# 
+#longitude
+for(j in 1:4){
+  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% 
+    mutate(long = midpoints(cut(long,30))) %>% group_by(long) %>%
+    summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
+    filter(!is.na(ci)) %>% as.data.frame()
+  plot(mean~long,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  y$lwr <- y$mean - y$ci
+  y$upr <- y$mean + y$ci
+  arrows(x0=y$long,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
+  points(mean~long,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
+  lines(smooth.spline(y=y$mean,x=y$long,spar=0.6),lwd=3,col=alpha(1,0.4))
+  label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  title(xlab='longitude (degrees)', cex.lab=1.3, line=2.7)
+}
+
+#land use
+for(j in 1:4){
+  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% 
+    mutate(p.lu = midpoints(cut(p.lu,30))) %>% group_by(p.lu) %>%
+    summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
+    filter(!is.na(ci)) %>% as.data.frame()
+  plot(mean~p.lu,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  y$lwr <- y$mean - y$ci
+  y$upr <- y$mean + y$ci
+  arrows(x0=y$p.lu,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
+  points(mean~p.lu,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
+  lines(smooth.spline(y=y$mean,x=y$p.lu,spar=0.6),lwd=3,col=alpha(1,0.4))
+  label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  title(xlab='land use (proportion)', cex.lab=1.3, line=2.7)
+}
+
+#land use
+for(j in 1:4){
+  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% 
+    mutate(pop_tot = midpoints(cut(log1p(pop_tot),30))) %>% group_by(pop_tot) %>%
+    summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
+    filter(!is.na(ci)) %>% as.data.frame()
+  plot(mean~pop_tot,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  y$lwr <- y$mean - y$ci
+  y$upr <- y$mean + y$ci
+  arrows(x0=y$pop_tot,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
+  points(mean~pop_tot,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
+  lines(smooth.spline(y=y$mean,x=y$pop_tot,spar=0.6),lwd=3,col=alpha(1,0.4))
+  label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  title(xlab='human density (log1+x)', cex.lab=1.3, line=2.7)
+}
+
+mtext(text='genetic diversity', cex=1.3,side=2,line=1,outer=T)
+dev.off()
+
+#### modelling global trend: figure 3 ####
+ 
 # #results dataframe for all scales
 # # coefs <- data.frame('taxon' = character(0),
 # #                     'year' = numeric(0),
