@@ -5,7 +5,7 @@ Three scripts:
 
 + one for building dataframes from individual-level, pairwise sequence dissimilarity data
 + one for data analysis and figures
-+ one for stepwise model selection including all possible 3 way interactions
++ one for stepwise model selection including all possible 2 way interactions
 
 Paper in prep for Nat E & E
 
