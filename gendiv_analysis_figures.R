@@ -19,6 +19,7 @@ library(gstat)
 library(sp)
 library(rworldmap)
 library(writexl)
+library(broom)
 #source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/Zuur.R')
 #source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
 
@@ -399,7 +400,7 @@ for(j in 1:4){
 mtext(text='genetic diversity', cex=1.3,side=2,line=1,outer=T)
 #dev.off()
 
-#### Fig. S3: illustrating scale dependence ####
+#### Fig. SX: illustrating scale dependence ####
 # 
 # pdf('~/Desktop/FigS3.pdf',pointsize = 8, width=8,height=8)
 # par(mfrow=c(4,4),oma=c(0,2.5,0,0),cex=1,mar=c(4,2,1,1))
@@ -538,16 +539,34 @@ for(i in 1:length(scales)){
 
 # see other script named 'gendiv_modelselection'
 
+## Table S1: model selection results
+
 #reading models/script output
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models08.Rdata')
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models1.Rdata')
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models2.Rdata')
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/CPGLMMs/models4.Rdata')
 
-#https://stackoverflow.com/questions/42139772/tidy-output-from-many-single-variable-models-using-purrr-broom
+#one large object with all models
+models <- append(models08, c(models1, models2, models4))
 
-map_df(~tidy(models08)) %>%
-  filter(term !="(Intercept)")
+#pulling out the coefficients and SEs and making a long df
+modseltbl <- models %>% map_df(~ rownames_to_column(as.data.frame(summary(.)$coefs))) %>%
+  rename(coef = rowname, value = Estimate, se = `Std. Error`) %>% select(coef:se) %>%
+  filter(coef != '(Intercept)')
+
+#adding a column with model name, for spread function below
+nb.coef.per.mod <- unlist(models %>% map(~ nrow(summary(.)$coefs))) - 1
+mod.name.vec <- data.frame('model' = rep(seq(from=1,to=length(models)), nb.coef.per.mod))
+modseltbl <- bind_cols(mod.name.vec, modseltbl)
+
+#reformat values and table to large
+modseltbl <- modseltbl %>% mutate_at(vars(value:se), funs(round(.,2))) %>%
+  mutate('values' = paste0(value,' (',se,')')) %>% select(-value, -se)
+
+tableS1 <- modseltbl %>% group_by(model) %>% spread(key = coef, value = values, fill = NA) %>%
+  select(1,4,9,14,2,13,6,8,5,7,12,10,11,15,16,3)
+#write_xlsx(tableS1, '~/Desktop/TableS1.xlsx')
 
 #### Caterpillar plot (Figure 3) ####
 
