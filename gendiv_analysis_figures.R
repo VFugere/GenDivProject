@@ -570,166 +570,67 @@ tableS1 <- modseltbl %>% group_by(model) %>% spread(key = coef, value = values, 
 
 #### Caterpillar plot (Figure 3) ####
 
-# #panel b
-#
-# #caterpillar plot for hypothesis-driven model (4 effects only)
-#
-# coefs$scale <- c(rep(0.08,nrow(results)),rep(1,nrow(results)),rep(2,nrow(results)),rep(4,nrow(results)))
-#
-# #coefs <- read_csv('~/Google Drive/Recherche/Intraspecific genetic diversity/models_p.lu.csv')
-#
-# coefs$y.lwr <- coefs$year - coefs$year.ci
-# coefs$y.upr <- coefs$year + coefs$year.ci
-# coefs$lat.lwr <- coefs$lat - coefs$lat.ci
-# coefs$lat.upr <- coefs$lat + coefs$lat.ci
-# coefs$l.lwr <- coefs$lu - coefs$lu.ci
-# coefs$l.upr <- coefs$lu + coefs$lu.ci
-# coefs$h.lwr <- coefs$humans - coefs$humans.ci
-# coefs$h.upr <- coefs$humans + coefs$humans.ci
-# # coefs$l.y.lwr <- coefs$lu.yr - coefs$lu.yr.ci
-# # coefs$l.y.upr <- coefs$lu.yr + coefs$lu.yr.ci
-# # coefs$h.y.lwr <- coefs$hu.yr - coefs$hu.yr.ci
-# # coefs$h.y.upr <- coefs$hu.yr + coefs$hu.yr.ci
-#
-# #write_csv(coefs, path = paste0('~/Google Drive/Recherche/Intraspecific genetic diversity/models_',land.use.var,'_',file.tag,'.csv'))
-#
-# #global plotting parameters
-# xlims <- c(-max(abs(coefs[,11:18])),max(abs(coefs[,11:18])))
-# #labLs <- c(expression(italic(Mammalia)),expression(italic(Aves)),expression(italic(Actinopterygii)),expression(italic(Insecta)))
-#
-# #pdf for figure
-# pdf(file = paste0('~/Google Drive/Recherche/Intraspecific genetic diversity/catplot_',land.use.var,'_',file.tag,'.pdf'),width = 6, height = 5)
-# par(mfrow=c(2,2),oma=c(2,2,0,0),mar=c(2,2,1,1))
-#
-# for(i in 1:4){
-#
-#   subdat <- filter(coefs, taxon == taxa[i])
-#
-#   uprs <- subdat %>% select(scale, ends_with('.upr')) %>% gather(key = effect, value = value, -scale) %>% arrange(scale)
-#   lwrs <- subdat %>% select(scale, ends_with('.lwr')) %>% gather(key = effect, value = value, -scale) %>% arrange(scale)
-#   means <- subdat %>% select(scale, year, lat, lu, humans) %>% gather(key = effect, value = value, -scale) %>% arrange(scale)
-#
-#   df <- cbind(means,lwrs$value,uprs$value)
-#   colnames(df)[4:5] <- c('lwr','upr')
-#   df$ptcol <- cols[i]
-#   df$ptcol[df$upr*df$lwr < 0] <- 'white'
-#   df$lncol <- 'dark gray'
-#   df$lncol[df$upr*df$lwr < 0] <- 'light gray'
-#
-#   plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',ylim=c(0.5,16.5),xlim=xlims)
-#   axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=seq(2.5,17,4),labels = c('0.08','1','2','4'))
-#   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-#   abline(h=c(4.5,8.5,12.5),col=alpha(1,0.4),lty=3,lwd=0.5)
-#   abline(v=0,lty=2,col='black')
-#
-#   arrows(x0=df$lwr,x1=df$upr,y0=1:16,length=0,lwd=1.5,col=df$lncol)
-#   points(y=1:16,x=means$value,col=1,bg=df$ptcol,pch=rep(21:24,4))
-#
-#   label <- image_data(phylopic.ids[i], size = 128)[[1]]
-#   add_phylopic_base(label, x = 0.15, y = 0.9, ysize = 0.25, alpha=0.8,color=cols[i])
-#
-#   if(i==1){
-#     #legend('topright',box.col = 'white',cex=0.7,pt.cex=0.8,legend=rev(c('year','latitude','land use','humans','year:land use','year:humans')),pch=c(8,25:21),pt.bg=1,y.intersp=1,bg='white')
-#     legend('topright',box.col = 'white',cex=0.7,pt.cex=0.7,legend=rev(c('year','latitude','land use','humans')),pch=c(24:21),pt.bg=1,y.intersp=1,bg='white')
-#   }
-# }
-#
-# mtext(text='coefficient (effect on genetic diversity)', side=1,outer=T,line=1)
-# mtext(text="spatial scale (grid cell size in degrees)", side=2,outer=T,line=1)
-#
-# dev.off()
-#
-# rm(dat,lwrs,means,model,resid.ts,results,spatdat,subdat,uprs,var1,y,xlims,r2,line,label,j,i,df)
-# #save.image('~/Google Drive/Recherche/Intraspecific genetic diversity/alldata_image.RData')
-# #save(alldata,file = '~/Google Drive/Recherche/Intraspecific genetic diversity/alldata.RData')
+##making the coef matrices: one each for coef values, lwr bound, and upr bound
 
-# #panel b
+#useful vectors
+mod.kp <- c(3,6,9,13,16,19,22,26,29,32,35,38,41,44,47,50)
+tax.scale <- data.frame('taxon' = rep(c('mam','bird','fish','insect'),4),
+                        'scale' = rep(c(0.08,1,2,4), each = 4))
+colvec <- rep(rev(cols), each = 4)
 
+#getting coefs
+modseltbl <- models %>% map_df(~ rownames_to_column(as.data.frame(summary(.)$coefs))) %>%
+  rename(coef = rowname, value = Estimate, se = `Std. Error`) %>% select(coef:se) %>%
+  filter(coef != '(Intercept)') %>% bind_cols(mod.name.vec)
 
-#caterpillar plot for model with all two way interactions, using models fitted already
+coefs <- modseltbl %>% select(-se) %>% group_by(model) %>% spread(key = coef, value = value, fill = NA) %>%
+  select(1,4,9,14,2,13,6,8,5,7,12,10,11,15,16,3) %>% filter(model %in% mod.kp) %>%
+  ungroup %>% select(-model)
 
-coefs <- data.frame('scale' = numeric(0),
-                    'tax' = character(0),
-                    'year' = numeric(0),
-                    'lat' = numeric(0),
-                    'long' = numeric(0),
-                    'LU' = numeric(0),
-                    'HD' = numeric(0),
-                    'year:lat' = numeric(0),
-                    'year:long' = numeric(0),
-                    'year:LU' = numeric(0),
-                    'year:HD' = numeric(0),
-                    'lat:long' = numeric(0),
-                    'lat:LU' = numeric(0),
-                    'lat:HD' = numeric(0),
-                    'long:LU' = numeric(0),
-                    'long:HD' = numeric(0),
-                    'scale' = numeric(0))
+se <- modseltbl %>% select(-value) %>% mutate(se = se*1.96) %>% group_by(model) %>%
+  spread(key = coef, value = se, fill = NA) %>%
+  select(1,4,9,14,2,13,6,8,5,7,12,10,11,15,16,3) %>% filter(model %in% mod.kp) %>%
+  ungroup %>% select(-model)
 
-models <- get(paste0('models',scales[i]))
-fixef(models[[1]])
+#re-arranging in right order from birds to mammals top to bottom
+coefs <- coefs[c(13,9,5,1,16,12,8,4,15,11,7,3,14,10,6,2),]
+se <- se[c(13,9,5,1,16,12,8,4,15,11,7,3,14,10,6,2),]
+coefs <- as.data.frame(coefs)
+lwr <- coefs - se
+upr <- coefs + se
 
-coefs$scale <- c(rep(0.08,nrow(results)),rep(1,nrow(results)),rep(2,nrow(results)),rep(4,nrow(results)))
+##figure 3
 
-coefs$y.lwr <- coefs$year - coefs$year.ci
-coefs$y.upr <- coefs$year + coefs$year.ci
-coefs$lat.lwr <- coefs$lat - coefs$lat.ci
-coefs$lat.upr <- coefs$lat + coefs$lat.ci
-coefs$l.lwr <- coefs$lu - coefs$lu.ci
-coefs$l.upr <- coefs$lu + coefs$lu.ci
-coefs$h.lwr <- coefs$humans - coefs$humans.ci
-coefs$h.upr <- coefs$humans + coefs$humans.ci
-# coefs$l.y.lwr <- coefs$lu.yr - coefs$lu.yr.ci
-# coefs$l.y.upr <- coefs$lu.yr + coefs$lu.yr.ci
-# coefs$h.y.lwr <- coefs$hu.yr - coefs$hu.yr.ci
-# coefs$h.y.upr <- coefs$hu.yr + coefs$hu.yr.ci
-
-#write_csv(coefs, path = paste0('~/Google Drive/Recherche/Intraspecific genetic diversity/models_',land.use.var,'_',file.tag,'.csv'))
-
-#global plotting parameters
-xlims <- c(-max(abs(coefs[,11:18])),max(abs(coefs[,11:18])))
-#labLs <- c(expression(italic(Mammalia)),expression(italic(Aves)),expression(italic(Actinopterygii)),expression(italic(Insecta)))
-
-#pdf for figure
-pdf(file = paste0('~/Google Drive/Recherche/Intraspecific genetic diversity/catplot_',land.use.var,'_',file.tag,'.pdf'),width = 6, height = 5)
-par(mfrow=c(2,2),oma=c(2,2,0,0),mar=c(2,2,1,1))
-
-for(i in 1:4){
-
-  subdat <- filter(coefs, taxon == taxa[i])
-
-  uprs <- subdat %>% select(scale, ends_with('.upr')) %>% gather(key = effect, value = value, -scale) %>% arrange(scale)
-  lwrs <- subdat %>% select(scale, ends_with('.lwr')) %>% gather(key = effect, value = value, -scale) %>% arrange(scale)
-  means <- subdat %>% select(scale, year, lat, lu, humans) %>% gather(key = effect, value = value, -scale) %>% arrange(scale)
-
-  df <- cbind(means,lwrs$value,uprs$value)
-  colnames(df)[4:5] <- c('lwr','upr')
-  df$ptcol <- cols[i]
-  df$ptcol[df$upr*df$lwr < 0] <- 'white'
-  df$lncol <- 'dark gray'
-  df$lncol[df$upr*df$lwr < 0] <- 'light gray'
-
-  plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',ylim=c(0.5,16.5),xlim=xlims)
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=seq(2.5,17,4),labels = c('0.08','1','2','4'))
-  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-  abline(h=c(4.5,8.5,12.5),col=alpha(1,0.4),lty=3,lwd=0.5)
-  abline(v=0,lty=2,col='black')
-
-  arrows(x0=df$lwr,x1=df$upr,y0=1:16,length=0,lwd=1.5,col=df$lncol)
-  points(y=1:16,x=means$value,col=1,bg=df$ptcol,pch=rep(21:24,4))
-
-  label <- image_data(phylopic.ids[i], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.15, y = 0.9, ysize = 0.25, alpha=0.8,color=cols[i])
-
-  if(i==1){
-    #legend('topright',box.col = 'white',cex=0.7,pt.cex=0.8,legend=rev(c('year','latitude','land use','humans','year:land use','year:humans')),pch=c(8,25:21),pt.bg=1,y.intersp=1,bg='white')
-    legend('topright',box.col = 'white',cex=0.7,pt.cex=0.7,legend=rev(c('year','latitude','land use','humans')),pch=c(24:21),pt.bg=1,y.intersp=1,bg='white')
+pdf(file = '~/Desktop/Fig3.pdf',width=8.5,height=3,pointsize=7)
+par(mfrow=c(1,1),mar=c(4,3,1,1),cex=1,oma=c(0,0,0,0))
+plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='n',xlim=c(0,15.1),ylim=c(0.5,16.5),yaxs='i', xaxs='i')
+for(i in seq(0.5,15.5,by=2)){
+  polygon(x=c(0,15,15,0),y=c(i,i,i+1,i+1),col='light gray',border=NA)
+}
+axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=1:16,labels = rep(rev(c("5'",'1°','2°','4°')),4),las=1)
+axis(2,cex.axis=1,lwd=1,lwd.ticks=1,at=c(0.5,4.5,8.5,12.5,16.5), labels = rep('',5))
+abline(v=1:15,lty=1,lwd=0.5)
+abline(v=seq(from=0.5,to=14.5,by=1),lty=2,lwd=0.5)
+abline(h=c(4.5,8.5,12.5))
+axis(1,cex.axis=0.7,lwd=0,lwd.ticks=0,at=seq(from=0.5,to=14.5,by=1),labels=rep(0,15),line=-0.75)
+axis(1,cex.axis=0.7,lwd=1,lwd.ticks=0.5,at=seq(from=0,to=15,by=1),labels=rep('',16))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=0,at=seq(from=0.5,to=14.5,by=1),labels=c('YR','LAT','LONG','LU','HD','YR:LAT','YR:LONG','YR:LU','YR:HD','LAT:LONG','LAT:LU','LAT:HD','LONG:LU','LONG:HD','LU:HD'),line=1)
+for(i in 1:15){
+  for(j in 1:16){
+    pt <- coefs[j,i] + i-0.5
+    xg <- lwr[j,i] + i-0.5
+    xd <- upr[j,i] + i-0.5
+    if(is.na(pt)){
+      ptfill <- NA
+    } else if(0 < upr[j,i] & 0 > lwr[j,i]){
+      ptfill <-  'white'
+    } else {
+      ptfill <- 'black'
+    }
+    arrows(x0=xg,x1=xd,y0=j,length=0,lwd=2)
+    points(x=pt,y=j,pch=21,col=1,bg=ptfill,cex=1.2)
   }
 }
-
-mtext(text='coefficient (effect on genetic diversity)', side=1,outer=T,line=1)
-mtext(text="spatial scale (grid cell size in degrees)", side=2,outer=T,line=1)
-
 dev.off()
 
 #### Time series analysis ####
