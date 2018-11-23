@@ -622,12 +622,18 @@ for(i in 1:15){
     xd <- upr[j,i] + i-0.5
     if(is.na(pt)){
       ptfill <- NA
+      lncol <- 'gray'
+      lnwd <- 1
     } else if(0 < upr[j,i] & 0 > lwr[j,i]){
       ptfill <-  'white'
+      lncol <- 'black'
+      lnwd <- 1.25
     } else {
       ptfill <- 'black'
+      lncol <- 'black'
+      lnwd <- 2
     }
-    arrows(x0=xg,x1=xd,y0=j,length=0,lwd=2)
+    arrows(x0=xg,x1=xd,y0=j,length=0,col=lncol,lwd=lnwd)
     points(x=pt,y=j,pch=21,col=1,bg=ptfill,cex=1.2)
   }
 }
