@@ -946,3 +946,9 @@ for(i in 1:4){
 }
 
 #dev.off()
+
+#### Testing for an effect of land use and HD and LU and HD change ####
+
+dat <- tsdat %>% filter(tax == 'birds') %>% select(div,pop,cell,)
+model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+
