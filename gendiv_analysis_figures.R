@@ -601,7 +601,7 @@ upr <- coefs + se
 
 ##figure 3
 
-pdf(file = '~/Desktop/Fig3.pdf',width=8.5,height=3,pointsize=7)
+#pdf(file = '~/Desktop/Fig3.pdf',width=8.5,height=3,pointsize=7)
 par(mfrow=c(1,1),mar=c(4,3,1,1),cex=1,oma=c(0,0,0,0))
 plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='n',xlim=c(0,15.1),ylim=c(0.5,16.5),yaxs='i', xaxs='i')
 for(i in seq(0.5,15.5,by=2)){
@@ -637,7 +637,7 @@ for(i in 1:15){
     points(x=pt,y=j,pch=21,col=1,bg=ptfill,cex=1.2)
   }
 }
-dev.off()
+#dev.off()
 
 #### Time series analysis ####
 
