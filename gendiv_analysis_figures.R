@@ -20,6 +20,7 @@ library(sp)
 library(rworldmap)
 library(writexl)
 library(broom)
+library(randomcoloR)
 #source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/Zuur.R')
 #source('/Users/vincentfugere/Google Drive/Recherche/PhD/R/functions/utils.R')
 
@@ -532,6 +533,8 @@ for(i in 1:length(scales)){
   }
 }
 
+rm(dat)
+
 # #save data
 # save(modeldata, file = '~/Google Drive/Recherche/Intraspecific genetic diversity/modeldata.Rdata')
 
@@ -639,25 +642,39 @@ for(i in 1:15){
 }
 #dev.off()
 
+rm(models, models08, models1, models2, models4, modeldata)
+
 #### Time series analysis ####
 
-#load('~/Google Drive/Recherche/Intraspecific genetic diversity/alldata_image.RData')
+#how many time series per scale/tax combinations?
 
-pdf('~/Desktop/Fig4.pdf',width=3.25,pointsize = 6,height=3)
+table1$ts <- numeric(16)
 
-par(mfrow=c(2,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
+for(i in 1:4){
+  for(j in 1:4){
+    dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
+      distinct(pop, .keep_all = T) %>% as.data.frame 
+    table1$ts[((i-1)*4)+j] <- sum(dat$n.years > 2)
+  }
+}
+
+#### Fig. 4 ####
+
+#pdf('~/Desktop/Fig4.pdf',width=4,pointsize = 8,height=7)
+
+par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
 
 i <- 4
 
-ymaxes <- c(0.032,0.032,0.032,0.06)
-ymins <- c(0.0005,0.0001,0.0001,0.0001)
+ymaxes <- c(0.032,0.032,0.06,0.032)
+ymins <- c(0.0001,0.0001,0.0001,0.0005)
 
 #init dataframe to receive all data
 plodat <- data.frame('p.lu' = numeric(0), 'pop_tot' = numeric(0), 'slopes' = numeric(0), 'tax' = character(0), stringsAsFactors = F)
 
 TSmods <- list()
 
-for(j in c(1,4)){
+for(j in 1:4){
   
   dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
     filter(.,!is.na(select(.,human.dens.var))) %>% 
@@ -687,8 +704,8 @@ for(j in c(1,4)){
   dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
   dat$slong <- as.numeric(scale(dat$long))
   
-  #checking colinearity
-  corvif(dat[,c('s.yr','snseqs','lu','salat','slong','sc.pop')])
+  # #checking colinearity
+  #corvif(dat[,c('s.yr','snseqs','lu','salat','slong','sc.pop')])
   
   #checking trend per ts duration
   #model <- cpglmm(div ~ 0 + s.yr * as.factor(n.years) + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
@@ -720,11 +737,12 @@ for(j in c(1,4)){
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(min(dat$s.yr),max(dat$s.yr),length.out = 5),labels=round(seq(yr1,yr2,length.out = 5),0))
   n <- nlevels(dat$pop)
+  randcols <- distinctColorPalette(k = n)
   for(k in 1:n){
     pop.data <- dat[dat$pop == levels(dat$pop)[k],]
     #points(div~s.yr,pop.data,col=alpha(1,0.2),type='o',pch=16)
     ys <- predict(model, pop.data)
-    points(ys~pop.data$s.yr,type='l',col=alpha(1,0.05))
+    points(ys~pop.data$s.yr,type='l',col=alpha(randcols[k],0.3))
   }
   y1 <- as.numeric(exp(intercept + ef*min(dat$s.yr)))
   y2 <- as.numeric(exp(intercept + ef*max(dat$s.yr)))
@@ -773,6 +791,8 @@ plodat$lu.chg <- plodat$p.lu_max - plodat$p.lu_min
 plodat$HD.chg <-  plodat$pop_tot_max - plodat$pop_tot_min
 
 dev.off()
+
+#### supplementary figure 
 
 pdf('~/Desktop/TS_supp.pdf',width=3.25,pointsize = 6,height=6)
 par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
