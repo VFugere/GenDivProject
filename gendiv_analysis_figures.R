@@ -660,17 +660,16 @@ for(i in 1:4){
 
 #### Fig. 4 ####
 
-#pdf('~/Desktop/Fig4.pdf',width=4,pointsize = 8,height=7)
+#init dataframe to receive all data
+tsdat <- data.frame()
 
-par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
-
+#plotting and indexing helpers
 i <- 4
-
 ymaxes <- c(0.032,0.032,0.06,0.032)
 ymins <- c(0.0001,0.0001,0.0001,0.0005)
 
-#init dataframe to receive all data
-plodat <- data.frame('slopes' = numeric(0), 'tax' = character(0), stringsAsFactors = F)
+#pdf('~/Desktop/Fig4.pdf',width=4,pointsize = 8,height=7)
+par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
 
 for(j in 1:4){
   
@@ -682,6 +681,9 @@ for(j in 1:4){
   
   # remove extreme outliers (x sd greater than mean)
   dat %<>% filter(div < mean(div)+10*sd(div))
+  
+  #recomputing number of time points after excluding outliers and old data points
+  dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
   
   #only keeping time series with 3+ time points
   dat <- dat[dat$n.years >= 3,]
@@ -764,7 +766,7 @@ for(j in 1:4){
   df$tax <- taxa[j]
   df %<>% select(-pop)
   
-  plodat <- bind_rows(plodat,df)
+  tsdat <- bind_rows(tsdat,df)
   
   # #validation
   # dat$R <- resid(model, type='standardized')
@@ -782,13 +784,86 @@ for(j in 1:4){
   
 }
 
-plodat$col.idx <- 1
-plodat$col.idx[plodat$tax == 'insects'] <- 4
-plodat$logHD <- log1p(plodat$pop_tot_mean)
-plodat$lu.chg <- plodat$p.lu_max - plodat$p.lu_min
-plodat$HD.chg <-  plodat$pop_tot_max - plodat$pop_tot_min
+tsdat$logHD <- log1p(tsdat$pop_tot_mean)
+tsdat$lu.chg <- tsdat$p.lu_max - tsdat$p.lu_min
+tsdat$HD.chg <-  tsdat$pop_tot_max - tsdat$pop_tot_min
 
-dev.off()
+#dev.off()
+
+# #### Fig. Sx-x: all other scales ####
+# 
+# pdf('~/Desktop/FigS4-6.pdf',width=4,pointsize = 8,height=7, onefile = T)
+# par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
+# 
+# for(i in 1:3){
+#   
+#   for(j in 1:4){
+#     
+#     dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
+#       filter(.,!is.na(select(.,human.dens.var))) %>% 
+#       filter(year >= treshold.yr)
+#     
+#     # remove extreme outliers (x sd greater than mean)
+#     dat %<>% filter(div < mean(div)+10*sd(div))
+#     
+#     #recomputing number of time points after excluding outliers and old data points
+#     dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
+#     
+#     #only keeping time series with 3+ time points
+#     dat <- dat[dat$n.years >= 3,]
+#     dat <- droplevels(dat)
+#     
+#     dat$s.yr <- as.numeric(scale(dat$year))
+#     dat$s.nyr <- as.numeric(scale(dat$n.years))
+#     dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
+#     
+#     model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+#     
+#     intercept <- fixef(model)[1]
+#     ef <-  fixef(model)[2]
+#     lwr <- fixef(model)[2] - summary(model)$coefs[2,2]*1.96
+#     upr <- fixef(model)[2] + summary(model)$coefs[2,2]*1.96
+#     
+#     yr1 <- dat$year[which(dat$s.yr == min(dat$s.yr))[1]]
+#     yr2 <- dat$year[which(dat$s.yr == max(dat$s.yr))[1]]
+#     
+#     #sketching model
+#     plot(x=0,y=0.01,dat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',xlim=range(dat$s.yr),ylim=c(ymins[j],ymaxes[j]),log='y')
+#     title(ylab='genetic diversity', cex.lab=1)
+#     title(xlab='year', cex.lab=1)
+#     axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+#     axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(min(dat$s.yr),max(dat$s.yr),length.out = 5),labels=round(seq(yr1,yr2,length.out = 5),0))
+#     n <- nlevels(dat$pop)
+#     randcols <- distinctColorPalette(k = n)
+#     for(k in 1:n){
+#       pop.data <- dat[dat$pop == levels(dat$pop)[k],]
+#       #points(div~s.yr,pop.data,col=alpha(1,0.2),type='o',pch=16)
+#       ys <- predict(model, pop.data)
+#       points(ys~pop.data$s.yr,type='l',col=alpha(randcols[k],0.3))
+#     }
+#     y1 <- as.numeric(exp(intercept + ef*min(dat$s.yr)))
+#     y2 <- as.numeric(exp(intercept + ef*max(dat$s.yr)))
+#     segments(x0=min(dat$s.yr),x1=max(dat$s.yr),y0=y1,y1=y2,lwd=2)
+#     
+#     #plotting random slopes
+#     df <- dat %>% group_by(pop) %>% summarize_at(vars(n.years), funs(mean, max, min)) %>% as.data.frame(.)
+#     ranef(model)$pop[,'s.yr'] + ef -> df$slopes
+#     
+#     h <- hist(df$slopes, breaks = 30, plot = F)
+#     histmax <- max(h$counts)
+#     
+#     plot(h, col = 1, main=NULL, xlab='temporal trend (random slope)',ylab='populations',las=1,border=0,ylim=c(-(histmax/12),histmax))
+#     ypos <- -(histmax/12)*0.7
+#     segments(x0=lwr,x1=upr,y0=ypos,y1=ypos,lty=1,col=1)
+#     points(x=ef,y=ypos,pch=16,col=1,cex=1.2)
+#     
+#     label <- image_data(phylopic.ids[j], size = 128)[[1]]
+#     add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.25, alpha=1,color=1)
+#     
+#   }
+# }
+# 
+# dev.off()
 
 #### re-doing analysis, but excluding time series less than x years ####
 
@@ -810,6 +885,9 @@ for(z in 3:7){
     
     # remove extreme outliers (x sd greater than mean)
     dat %<>% filter(div < mean(div)+10*sd(div))
+    
+    #recomputing number of time points after excluding outliers and old data points
+    dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
     
     #only keeping time series with z time points (4-7)
     dat <- dat[dat$n.years >= z,]
@@ -837,28 +915,34 @@ for(z in 3:7){
 
 #### Figure S3 ####
 
-#### w ####
+results$tax <- str_replace(results$tax, 'acti', 'fish')
+results <- results %>% arrange(tax)
 
-pdf('~/Desktop/TSfunnel.pdf',width=7,pointsize = 12,height=4)
+#pdf('~/Desktop/FigS3.pdf',width=5,pointsize = 8,height=6)
 
-par(mfrow=c(1,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
+layout(rbind(c(1,1),c(2,3),c(4,5)))
+par(mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
 
-plot(slopes~n.years_mean,subset(plodat, tax == 'mammals'),type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
-title(xlab='duration', cex.lab=1)
-title(ylab='population trend', cex.lab=1)
+plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',xlim=c(1,16),ylim=range(c(results$lwr,results$upr)))
+title(xlab='minimum number of years in time series', cex.lab=1)
+title(ylab='fixed effect of time', cex.lab=1)
 axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-abline(h=0,lty=2)
-points(slopes~jitter(n.years_mean),subset(plodat, tax == 'mammals'),pch=1,cex=1,col=alpha(1,0.2))
-legend('topright',legend = 'mammals',bty='n',cex=1)
+abline(h=0,lty=3)
+abline(v=c(4.5,8.5,12.5))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=0,at=1:16,labels=rep(3:6,4))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(4.5,8.5,12.5),labels=rep('',3))
+arrows(x0=1:16,y0=results$lwr,y1=results$upr,length=0,lwd=1.5,col=1)
+points(x=1:16,y=results$es,pch=20,cex=2,col=1)
 
-plot(slopes~n.years_mean,subset(plodat, tax == 'insects'),type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
-title(xlab='duration', cex.lab=1)
-title(ylab='population trend', cex.lab=1)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-abline(h=0,lty=2)
-points(slopes~jitter(n.years_mean),subset(plodat, tax == 'insects'),pch=1,cex=1,col=alpha(1,0.2))
-legend('topright',legend = 'insects',bty='n',cex=1)
+for(i in 1:4){
+  plot(slopes~n.years_mean,subset(tsdat, tax == taxa[i]),type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  title(xlab='number of years', cex.lab=1)
+  title(ylab='population trend', cex.lab=1)
+  abline(h=0,lty=2)
+  points(slopes~jitter(n.years_mean),subset(tsdat, tax == taxa[i]),pch=1,cex=1,col=alpha(1,0.2))
+  abline(lm(slopes~n.years_mean,subset(tsdat, tax == taxa[i])),lwd=2)
+}
 
-dev.off()
+#dev.off()
