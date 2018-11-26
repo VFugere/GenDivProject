@@ -670,9 +670,7 @@ ymaxes <- c(0.032,0.032,0.06,0.032)
 ymins <- c(0.0001,0.0001,0.0001,0.0005)
 
 #init dataframe to receive all data
-plodat <- data.frame('p.lu' = numeric(0), 'pop_tot' = numeric(0), 'slopes' = numeric(0), 'tax' = character(0), stringsAsFactors = F)
-
-TSmods <- list()
+plodat <- data.frame('slopes' = numeric(0), 'tax' = character(0), stringsAsFactors = F)
 
 for(j in 1:4){
   
@@ -792,20 +790,23 @@ plodat$HD.chg <-  plodat$pop_tot_max - plodat$pop_tot_min
 
 dev.off()
 
-#### supplementary figure 
+#### re-doing analysis, but excluding time series less than x years ####
 
-pdf('~/Desktop/TS_supp.pdf',width=3.25,pointsize = 6,height=6)
-par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
+#getting coefficients
 
-for(z in 4:7){
+results <- data.frame('tax' = character(0), 
+                      'min.yr' = numeric(0),
+                      'es' = numeric(0),
+                      'lwr' = numeric(0),
+                      'upr' = numeric(0), stringsAsFactors = F)
 
-  for(j in c(1,4)){
+for(z in 3:7){
+  
+  for(j in 1:4){
     
     dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
       filter(.,!is.na(select(.,human.dens.var))) %>% 
-      filter(year >= treshold.yr) %>%
-      mutate('p.lu' = rowSums(select(.,types.lu))) %>%
-      mutate('p.wild' = 1-p.lu)
+      filter(year >= treshold.yr)
     
     # remove extreme outliers (x sd greater than mean)
     dat %<>% filter(div < mean(div)+10*sd(div))
@@ -814,20 +815,9 @@ for(z in 4:7){
     dat <- dat[dat$n.years >= z,]
     dat <- droplevels(dat)
     
-    #correcting land use with proportions exceeding 1
-    dat[dat$p.lu > 1,'p.wild'] <- 0
-    dat[dat$p.lu > 1,'p.lu'] <- 1
-    
-    #choosing relevant land use column for model
-    dat$lu <- subset(dat, select = land.use.var)[,1]
-    
     dat$s.yr <- as.numeric(scale(dat$year))
     dat$s.nyr <- as.numeric(scale(dat$n.years))
-    dat$lu <- as.numeric(scale(dat$lu))
-    dat$sc.pop <- as.numeric(scale(log1p(subset(dat, select =human.dens.var))[,1]))
-    dat$salat <- as.numeric(scale(abs(dat$lat))) #absolute value of latitude
     dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
-    dat$slong <- as.numeric(scale(dat$long))
     
     model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
     
@@ -835,69 +825,17 @@ for(z in 4:7){
     lwr <- fixef(model)[2] - summary(model)$coefs[2,2]*1.96
     upr <- fixef(model)[2] + summary(model)$coefs[2,2]*1.96
     
-    #plotting random slopes
-    df <- dat %>% group_by(pop) %>% summarize_at(vars(p.lu,pop_tot,n.years), funs(mean, max, min)) %>% as.data.frame(.)
-    ranef(model)$pop[,'s.yr'] -> df$slopes
-    
-    h <- hist(df$slopes, breaks = 30, plot = F)
-    histmax <- max(h$counts)
-    
-    plot(h, col = cols[j], main=NULL, xlab='temporal trend (random slope)',ylab='populations',las=1,border=0,ylim=c(-(histmax/12),histmax))
-    ypos <- -(histmax/12)*0.7
-    segments(x0=lwr,x1=upr,y0=ypos,y1=ypos,lty=1,col=cols[j])
-    points(x=ef,y=ypos,pch=16,col=cols[j],cex=1.2)
-    
-    label <- image_data(phylopic.ids[j], size = 128)[[1]]
-    add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.25, alpha=1,color=1)
+    line2add <- results[0,]
+    line2add[1,1] <- shortax[j]
+    line2add[1,2] <- z
+    line2add[1,3:5] <- c(ef,lwr,upr)
+
+    results <- rbind(results,line2add)
     
      }
 }
 
-dev.off()
-
-# plot(slopes~p.lu_mean,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
-# title(xlab='proportion of land used', cex.lab=1)
-# title(ylab='population trend', cex.lab=1)
-# axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-# axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-# abline(h=0,lty=2)
-# points(slopes~p.lu_mean,plodat,pch=c(0,1)[col.idx^0.5],cex=0.5,col=alpha(cols[col.idx],0.2))
-# legend('topleft',inset=c(0,-0.05),legend = bquote(italic(r[S]) == .(round(cor(plodat$p.lu_mean,plodat$slopes,method='spearman'),2))),bty='n',cex=1)
-# 
-# plot(slopes~logHD,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
-# title(xlab=expression(log[10](1+human~density)), cex.lab=1)
-# title(ylab='population trend', cex.lab=1)
-# axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-# axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-# abline(h=0,lty=2)
-# points(slopes~logHD,plodat,pch=c(0,1)[col.idx^0.5],cex=0.5,col=alpha(cols[col.idx],0.2))
-# legend('topleft',inset=c(0,-0.05),legend = bquote(italic(r[S]) == .(round(cor(plodat$logHD,plodat$slopes,method='spearman'),2))),bty='n',cex=1)
-# 
-dev.off()
-# 
-# pdf('~/Desktop/Fig4_extra.pdf',width=3.75,pointsize = 6,height=1.5)
-# 
-# par(mfrow=c(1,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
-# 
-# plot(slopes~lu.chg,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
-# title(xlab='land use change (proportion)', cex.lab=1)
-# title(ylab='population trend', cex.lab=1)
-# axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-# axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-# abline(h=0,lty=2)
-# points(slopes~lu.chg,plodat,pch=c(0,1)[col.idx^0.5],cex=0.5,col=alpha(cols[col.idx],0.2))
-# legend('topleft',inset=c(0,-0.05),legend = bquote(italic(r[S]) == .(round(cor(plodat$lu.chg,plodat$slopes,method='spearman'),2))),bty='n',cex=1)
-# 
-# plot(slopes~HD.chg,plodat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l')
-# title(xlab=human~density~increase, cex.lab=1)
-# title(ylab='population trend', cex.lab=1)
-# axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-# axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-# abline(h=0,lty=2)
-# points(slopes~HD.chg,plodat,pch=c(0,1)[col.idx^0.5],cex=0.5,col=alpha(cols[col.idx],0.2))
-# legend('topleft',inset=c(0,-0.05),legend = bquote(italic(r[S]) == .(round(cor(plodat$HD.chg,plodat$slopes,method='spearman'),2))),bty='n',cex=1)
-# 
-# dev.off()
+#### Figure S3 ####
 
 #### w ####
 
