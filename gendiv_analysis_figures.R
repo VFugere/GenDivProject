@@ -31,6 +31,19 @@ midpoints <- function(x, dp=2){
   return(round(lower+(upper-lower)/2, dp))
 }
 
+corvif <- function(dataz) {
+  dataz <- as.data.frame(dataz)
+  #correlation part
+  cat("Correlations of the variables\n\n")
+  tmp_cor <- cor(dataz,use="complete.obs")
+  print(tmp_cor)
+  #vif part
+  form    <- formula(paste("fooy ~ ",paste(strsplit(names(dataz)," "),collapse=" + ")))
+  dataz   <- data.frame(fooy=1,dataz)
+  lm_mod  <- lm(form,dataz)
+  cat("\n\nVariance inflation factors\n\n")
+  print(myvif(lm_mod))
+}
 
 #load data
 load('/Users/vincentfugere/Google Drive/Recherche/Intraspecific genetic diversity/intrasp_gen_div.RData')
@@ -660,16 +673,17 @@ for(i in 1:4){
 
 #### Fig. 4 ####
 
-#init dataframe to receive all data
+#init objects to receive metadata (slopes/time series properties) and models
 tsdat <- data.frame()
+tsmodels <- list()
 
 #plotting and indexing helpers
 i <- 4
 ymaxes <- c(0.032,0.032,0.06,0.032)
 ymins <- c(0.0001,0.0001,0.0001,0.0005)
 
-#pdf('~/Desktop/Fig4.pdf',width=4,pointsize = 8,height=7)
-par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
+pdf('~/Desktop/Fig4.pdf',width=6,pointsize = 8,height=7)
+par(mfrow=c(4,3), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
 
 for(j in 1:4){
   
@@ -707,20 +721,11 @@ for(j in 1:4){
   # #checking colinearity
   #corvif(dat[,c('s.yr','snseqs','lu','salat','slong','sc.pop')])
   
-  #checking trend per ts duration
-  #model <- cpglmm(div ~ 0 + s.yr * as.factor(n.years) + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
-  #write.csv(as.data.frame(summary(model)@coefs), file = '~/Desktop/insects.csv')
-  
   #model: weighing or not, adding correlated intercept/slope or not, does not change anything
-  #went with weights & uncoorrelated slope/intercept, which is perhaps cleanest
-  model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
-  #model <- cpglmm(div ~ 1 + s.yr + (0+s.yr|pop) + (1|pop), data=dat)
+  model <- cpglmm(div ~ 1 + s.yr + (s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+  #model <- cpglmm(div ~ 1 + s.yr + (s.yr-1|pop) + (1|pop), data=dat)
   #model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop), data=dat, weights = log(nseqs))
   #model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop), data=dat)
-  #fullmodel <- cpglmm(div ~ 1 + s.yr*(lu + sc.pop) + (0+s.yr|pop) + (1|pop) + (1|cell), data=dat, weights=log(nseqs))
-  #summary(fullmodel)
-  #TSmods <- c(TSmods, fullmodel)
-  #model.ME <- cpglmm(div ~ 1 + s.yr + lu + sc.pop + salat + slong + (0+s.yr|pop) + (1|pop), data=dat, weights=log(nseqs))
   
   intercept <- fixef(model)[1]
   ef <-  fixef(model)[2]
@@ -754,15 +759,17 @@ for(j in 1:4){
   
   h <- hist(df$slopes, breaks = 30, plot = F)
   histmax <- max(h$counts)
+  histrange <- range(h$breaks)
   
-  plot(h, col = 1, main=NULL, xlab='temporal trend (random slope)',ylab='populations',las=1,border=0,ylim=c(-(histmax/12),histmax))
+  plot(h, col = 1, main=NULL, xlab='temporal trend (slope)',ylab='populations',las=1,border=0,ylim=c(-(histmax/12),histmax),xaxt="n")
+  axis(1, at=seq(from=-2,to=2,by=0.5))
   ypos <- -(histmax/12)*0.7
   segments(x0=lwr,x1=upr,y0=ypos,y1=ypos,lty=1,col=1)
   points(x=ef,y=ypos,pch=16,col=1,cex=1.2)
   
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.25, alpha=1,color=1)
-  
+  # label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  # add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.25, alpha=1,color=1)
+  # 
   df$tax <- taxa[j]
   df %<>% select(-pop)
   
@@ -782,88 +789,53 @@ for(j in 1:4){
   # #heteroscedasticity?
   # plot(R~Yfit,dat,ylab='standardized residuals',xlab='fitted',pch=16,col=alpha(1,0.2))
   
+  #more complex model with other predictors
+  model2 <- cpglmm(div ~ 1 + s.yr + s.nyr + lu + sc.pop + salat + (s.yr|pop) + (lu-1|pop) + (sc.pop-1|pop) + (1|cell), data=dat, weights = log(nseqs))
+  tsmodels <- append(tsmodels,c(model,model2))
+  
+  #getting coefs
+  coefs <- rownames_to_column(as.data.frame(summary(model2)$coefs)) %>%
+    rename(coef = rowname, value = Estimate, se = `Std. Error`) %>% select(coef:se) %>%
+    filter(coef != '(Intercept)')
+  coefs %<>% mutate('lwr' = value-1.96*se, 'upr' = value+1.96*se)
+  coefs <- coefs[c(4,3,5,2,1),]
+  
+  xmin <- min(coefs$lwr)
+  xmax <- max(coefs$upr)
+  
+  #caterpillar plot of time series model
+  plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',xlim=c(xmin,xmax),ylim=c(0.5,5.5))
+  # for(i in seq(0.5,5.5,by=2)){
+  #   polygon(x=c(xmin*1.1,xmax*1.1,xmax*1.1,xmin*1.1),y=c(i,i,i+1,i+1),col='#BACBED',border=NA)
+  # }
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=1:5,labels = rev(c('YR','DUR','LAT','LU','HD')),las=1)
+  abline(v=0,lty=2,lwd=1)
+  abline(h=1:5,lty=3,lwd=0.25)
+  title(xlab='parameter estimate')
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  for(w in 1:5){
+    pt <- coefs[w,'value']
+    lwr <- coefs[w,'lwr']
+    upr <- coefs[w,'upr']
+    if(0 < upr & 0 > lwr){
+      ptfill <-  'white'
+      lncol <- '#CACACA'
+      lnwd <- 3
+    } else {
+      ptfill <- 'black'
+      lncol <- 'black'
+      lnwd <- 3
+    }
+    segments(x0=lwr,x1=upr,y0=w,y1=w,col=lncol,lwd=lnwd)
+    points(x=pt,y=w,pch=21,col=1,bg=ptfill,cex=1.5)
+  }
 }
 
 tsdat$logHD <- log1p(tsdat$pop_tot_mean)
 tsdat$lu.chg <- tsdat$p.lu_max - tsdat$p.lu_min
 tsdat$HD.chg <-  tsdat$pop_tot_max - tsdat$pop_tot_min
 
-#dev.off()
-
-# #### Fig. Sx-x: all other scales ####
-# 
-# pdf('~/Desktop/FigS4-6.pdf',width=4,pointsize = 8,height=7, onefile = T)
-# par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
-# 
-# for(i in 1:3){
-#   
-#   for(j in 1:4){
-#     
-#     dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
-#       filter(.,!is.na(select(.,human.dens.var))) %>% 
-#       filter(year >= treshold.yr)
-#     
-#     # remove extreme outliers (x sd greater than mean)
-#     dat %<>% filter(div < mean(div)+10*sd(div))
-#     
-#     #recomputing number of time points after excluding outliers and old data points
-#     dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
-#     
-#     #only keeping time series with 3+ time points
-#     dat <- dat[dat$n.years >= 3,]
-#     dat <- droplevels(dat)
-#     
-#     dat$s.yr <- as.numeric(scale(dat$year))
-#     dat$s.nyr <- as.numeric(scale(dat$n.years))
-#     dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
-#     
-#     model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
-#     
-#     intercept <- fixef(model)[1]
-#     ef <-  fixef(model)[2]
-#     lwr <- fixef(model)[2] - summary(model)$coefs[2,2]*1.96
-#     upr <- fixef(model)[2] + summary(model)$coefs[2,2]*1.96
-#     
-#     yr1 <- dat$year[which(dat$s.yr == min(dat$s.yr))[1]]
-#     yr2 <- dat$year[which(dat$s.yr == max(dat$s.yr))[1]]
-#     
-#     #sketching model
-#     plot(x=0,y=0.01,dat,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',xlim=range(dat$s.yr),ylim=c(ymins[j],ymaxes[j]),log='y')
-#     title(ylab='genetic diversity', cex.lab=1)
-#     title(xlab='year', cex.lab=1)
-#     axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-#     axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(min(dat$s.yr),max(dat$s.yr),length.out = 5),labels=round(seq(yr1,yr2,length.out = 5),0))
-#     n <- nlevels(dat$pop)
-#     randcols <- distinctColorPalette(k = n)
-#     for(k in 1:n){
-#       pop.data <- dat[dat$pop == levels(dat$pop)[k],]
-#       #points(div~s.yr,pop.data,col=alpha(1,0.2),type='o',pch=16)
-#       ys <- predict(model, pop.data)
-#       points(ys~pop.data$s.yr,type='l',col=alpha(randcols[k],0.3))
-#     }
-#     y1 <- as.numeric(exp(intercept + ef*min(dat$s.yr)))
-#     y2 <- as.numeric(exp(intercept + ef*max(dat$s.yr)))
-#     segments(x0=min(dat$s.yr),x1=max(dat$s.yr),y0=y1,y1=y2,lwd=2)
-#     
-#     #plotting random slopes
-#     df <- dat %>% group_by(pop) %>% summarize_at(vars(n.years), funs(mean, max, min)) %>% as.data.frame(.)
-#     ranef(model)$pop[,'s.yr'] + ef -> df$slopes
-#     
-#     h <- hist(df$slopes, breaks = 30, plot = F)
-#     histmax <- max(h$counts)
-#     
-#     plot(h, col = 1, main=NULL, xlab='temporal trend (random slope)',ylab='populations',las=1,border=0,ylim=c(-(histmax/12),histmax))
-#     ypos <- -(histmax/12)*0.7
-#     segments(x0=lwr,x1=upr,y0=ypos,y1=ypos,lty=1,col=1)
-#     points(x=ef,y=ypos,pch=16,col=1,cex=1.2)
-#     
-#     label <- image_data(phylopic.ids[j], size = 128)[[1]]
-#     add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.25, alpha=1,color=1)
-#     
-#   }
-# }
-# 
-# dev.off()
+dev.off()
 
 #### re-doing analysis, but excluding time series less than x years ####
 
