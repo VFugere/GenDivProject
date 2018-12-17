@@ -31,6 +31,7 @@ midpoints <- function(x, dp=2){
   return(round(lower+(upper-lower)/2, dp))
 }
 
+#VIF functions from Zuur et al. 2009
 corvif <- function(dataz) {
   dataz <- as.data.frame(dataz)
   #correlation part
@@ -44,6 +45,45 @@ corvif <- function(dataz) {
   cat("\n\nVariance inflation factors\n\n")
   print(myvif(lm_mod))
 }
+
+#Support function for corvif. Will not be called by the user
+myvif <- function(mod) {
+  v <- vcov(mod)
+  assign <- attributes(model.matrix(mod))$assign
+  if (names(coefficients(mod)[1]) == "(Intercept)") {
+    v <- v[-1, -1]
+    assign <- assign[-1]
+  } else warning("No intercept: vifs may not be sensible.")
+  terms <- labels(terms(mod))
+  n.terms <- length(terms)
+  if (n.terms < 2) stop("The model contains fewer than 2 terms")
+  if (length(assign) > dim(v)[1] ) {
+    diag(tmp_cor)<-0
+    if (any(tmp_cor==1.0)){
+      return("Sample size is too small, 100% collinearity is present")
+    } else {
+      return("Sample size is too small")
+    }
+  }
+  R <- cov2cor(v)
+  detR <- det(R)
+  result <- matrix(0, n.terms, 3)
+  rownames(result) <- terms
+  colnames(result) <- c("GVIF", "Df", "GVIF^(1/2Df)")
+  for (term in 1:n.terms) {
+    subs <- which(assign == term)
+    result[term, 1] <- det(as.matrix(R[subs, subs])) * det(as.matrix(R[-subs, -subs])) / detR
+    result[term, 2] <- length(subs)
+  }
+  if (all(result[, 2] == 1)) {
+    result <- data.frame(GVIF=result[, 1])
+  } else {
+    result[, 3] <- result[, 1]^(1/(2 * result[, 2]))
+  }
+  invisible(result)
+}
+#END VIF FUNCTIONS
+
 
 #load data
 load('/Users/vincentfugere/Google Drive/Recherche/Intraspecific genetic diversity/intrasp_gen_div.RData')
@@ -682,8 +722,8 @@ i <- 4
 ymaxes <- c(0.032,0.032,0.06,0.032)
 ymins <- c(0.0001,0.0001,0.0001,0.0005)
 
-pdf('~/Desktop/Fig4.pdf',width=6,pointsize = 8,height=7)
-par(mfrow=c(4,3), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
+#pdf('~/Desktop/Fig4.pdf',width=4,pointsize = 8,height=7)
+par(mfrow=c(4,2), mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
 
 for(j in 1:4){
   
@@ -719,7 +759,7 @@ for(j in 1:4){
   dat$slong <- as.numeric(scale(dat$long))
   
   # #checking colinearity
-  #corvif(dat[,c('s.yr','snseqs','lu','salat','slong','sc.pop')])
+  # corvif(dat[,c('s.yr','s.nyr','lu','salat','sc.pop')])
   
   #model: weighing or not, adding correlated intercept/slope or not, does not change anything
   model <- cpglmm(div ~ 1 + s.yr + (s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
@@ -790,52 +830,76 @@ for(j in 1:4){
   # plot(R~Yfit,dat,ylab='standardized residuals',xlab='fitted',pch=16,col=alpha(1,0.2))
   
   #more complex model with other predictors
-  model2 <- cpglmm(div ~ 1 + s.yr + s.nyr + lu + sc.pop + salat + (s.yr|pop) + (lu-1|pop) + (sc.pop-1|pop) + (1|cell), data=dat, weights = log(nseqs))
-  tsmodels <- append(tsmodels,c(model,model2))
+  model2 <- cpglmm(div ~ 1 + s.yr + s.nyr + lu + (s.yr|pop) + (lu-1|pop) + (1|cell), data=dat, weights = log(nseqs))
+  model3 <- cpglmm(div ~ 1 + s.yr + s.nyr + sc.pop + (s.yr|pop) + (sc.pop-1|pop) + (1|cell), data=dat, weights = log(nseqs))
+  model4 <- cpglmm(div ~ 1 + s.yr + s.nyr + salat + (s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
   
-  #getting coefs
-  coefs <- rownames_to_column(as.data.frame(summary(model2)$coefs)) %>%
-    rename(coef = rowname, value = Estimate, se = `Std. Error`) %>% select(coef:se) %>%
-    filter(coef != '(Intercept)')
-  coefs %<>% mutate('lwr' = value-1.96*se, 'upr' = value+1.96*se)
-  coefs <- coefs[c(4,3,5,2,1),]
+  tsmodels <- append(tsmodels,c(model,model2,model3,model4))
   
-  xmin <- min(coefs$lwr)
-  xmax <- max(coefs$upr)
-  
-  #caterpillar plot of time series model
-  plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',xlim=c(xmin,xmax),ylim=c(0.5,5.5))
-  # for(i in seq(0.5,5.5,by=2)){
-  #   polygon(x=c(xmin*1.1,xmax*1.1,xmax*1.1,xmin*1.1),y=c(i,i,i+1,i+1),col='#BACBED',border=NA)
+  # HAD TO DITCH THIS PART BECAUSE HIGHLY COLINEAR PREDICTORS THAT CANNOT BE INCLUDED IN THE SAME MODEL
+  # #getting coefs
+  # coefs <- rownames_to_column(as.data.frame(summary(model2)$coefs)) %>%
+  #   rename(coef = rowname, value = Estimate, se = `Std. Error`) %>% select(coef:se) %>%
+  #   filter(coef != '(Intercept)')
+  # coefs %<>% mutate('lwr' = value-1.96*se, 'upr' = value+1.96*se)
+  # coefs <- coefs[c(4,3,5,2,1),]
+  # 
+  # xmin <- min(coefs$lwr)
+  # xmax <- max(coefs$upr)
+  # 
+  # #caterpillar plot of time series model
+  # plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='l',xlim=c(xmin,xmax),ylim=c(0.5,5.5))
+  # # for(i in seq(0.5,5.5,by=2)){
+  # #   polygon(x=c(xmin*1.1,xmax*1.1,xmax*1.1,xmin*1.1),y=c(i,i,i+1,i+1),col='#BACBED',border=NA)
+  # # }
+  # axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=1:5,labels = rev(c('YR','DUR','LAT','LU','HD')),las=1)
+  # abline(v=0,lty=2,lwd=1)
+  # abline(h=1:5,lty=3,lwd=0.25)
+  # title(xlab='parameter estimate')
+  # axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  # for(w in 1:5){
+  #   pt <- coefs[w,'value']
+  #   lwr <- coefs[w,'lwr']
+  #   upr <- coefs[w,'upr']
+  #   if(0 < upr & 0 > lwr){
+  #     ptfill <-  'white'
+  #     lncol <- '#CACACA'
+  #     lnwd <- 3
+  #   } else {
+  #     ptfill <- 'black'
+  #     lncol <- 'black'
+  #     lnwd <- 3
+  #   }
+  #   segments(x0=lwr,x1=upr,y0=w,y1=w,col=lncol,lwd=lnwd)
+  #   points(x=pt,y=w,pch=21,col=1,bg=ptfill,cex=1.5)
   # }
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=1:5,labels = rev(c('YR','DUR','LAT','LU','HD')),las=1)
-  abline(v=0,lty=2,lwd=1)
-  abline(h=1:5,lty=3,lwd=0.25)
-  title(xlab='parameter estimate')
-  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-  for(w in 1:5){
-    pt <- coefs[w,'value']
-    lwr <- coefs[w,'lwr']
-    upr <- coefs[w,'upr']
-    if(0 < upr & 0 > lwr){
-      ptfill <-  'white'
-      lncol <- '#CACACA'
-      lnwd <- 3
-    } else {
-      ptfill <- 'black'
-      lncol <- 'black'
-      lnwd <- 3
-    }
-    segments(x0=lwr,x1=upr,y0=w,y1=w,col=lncol,lwd=lnwd)
-    points(x=pt,y=w,pch=21,col=1,bg=ptfill,cex=1.5)
-  }
 }
 
-tsdat$logHD <- log1p(tsdat$pop_tot_mean)
-tsdat$lu.chg <- tsdat$p.lu_max - tsdat$p.lu_min
-tsdat$HD.chg <-  tsdat$pop_tot_max - tsdat$pop_tot_min
+# tsdat$logHD <- log1p(tsdat$pop_tot_mean)
+# tsdat$lu.chg <- tsdat$p.lu_max - tsdat$p.lu_min
+# tsdat$HD.chg <-  tsdat$pop_tot_max - tsdat$pop_tot_min
 
-dev.off()
+#dev.off()
+
+#### Table S2 ####
+
+#pulling out the coefficients and SEs and making a long df
+tblS2 <- tsmodels %>% map_df(~ rownames_to_column(as.data.frame(summary(.)$coefs))) %>%
+  rename(coef = rowname, value = Estimate, se = `Std. Error`) %>% select(coef:se) %>%
+  filter(coef != '(Intercept)')
+
+#adding a column with model name, for spread function below
+nb.coef.per.mod <- unlist(tsmodels %>% map(~ nrow(summary(.)$coefs))) - 1
+mod.name.vec <- data.frame('model' = rep(seq(from=1,to=length(tsmodels)), nb.coef.per.mod))
+tblS2 <- bind_cols(mod.name.vec, tblS2)
+
+#reformat values and table to large
+tblS2 <- tblS2 %>% mutate_at(vars(value:se), funs(round(.,2))) %>%
+  mutate('values' = paste0(value,' (',se,')')) %>% select(-value, -se)
+
+tblS2 <- tblS2 %>% group_by(model) %>% spread(key = coef, value = values, fill = NA) %>%
+  select(1,4,3,5,2,6)
+write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
 
 #### re-doing analysis, but excluding time series less than x years ####
 
@@ -918,38 +982,3 @@ for(i in 1:4){
 }
 
 #dev.off()
-
-#### Testing for an effect of land use and HD and LU and HD change ####
-
-i<-4
-
-#for(j in 1:4){
-j<-1
-
-dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
-  filter(.,!is.na(select(.,human.dens.var))) %>% 
-  filter(year >= treshold.yr) %>%
-  mutate('p.lu' = rowSums(select(.,types.lu))) %>%
-  mutate('p.wild' = 1-p.lu)
-
-dat %<>% filter(div < mean(div)+10*sd(div))
-dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
-dat <- dat[dat$n.years >= 3,]
-dat <- droplevels(dat)
-dat[dat$p.lu > 1,'p.wild'] <- 0
-dat[dat$p.lu > 1,'p.lu'] <- 1
-dat$lu <- subset(dat, select = land.use.var)[,1]
-dat$s.yr <- as.numeric(scale(dat$year))
-dat$s.nyr <- as.numeric(scale(dat$n.years))
-dat$lu <- as.numeric(scale(dat$lu))
-dat$sc.pop <- as.numeric(scale(log1p(subset(dat, select =human.dens.var))[,1]))
-dat$salat <- as.numeric(scale(abs(dat$lat))) #absolute value of latitude
-dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
-dat$slong <- as.numeric(scale(dat$long))
-
-model0 <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
-model1 <- cpglmm(div ~ 1 + s.yr+lu + (1+s.yr+lu|pop) + (1|cell), data=dat, weights = log(nseqs))
-
-AIC(model0,model1)
-summary(model1)
-
