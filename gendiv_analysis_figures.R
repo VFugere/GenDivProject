@@ -949,6 +949,35 @@ for(i in 1:4){
 
 #### Testing for an effect of land use and HD and LU and HD change ####
 
-dat <- tsdat %>% filter(tax == 'birds') %>% select(div,pop,cell,)
-model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+i<-4
+
+#for(j in 1:4){
+j<-1
+
+dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
+  filter(.,!is.na(select(.,human.dens.var))) %>% 
+  filter(year >= treshold.yr) %>%
+  mutate('p.lu' = rowSums(select(.,types.lu))) %>%
+  mutate('p.wild' = 1-p.lu)
+
+dat %<>% filter(div < mean(div)+10*sd(div))
+dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
+dat <- dat[dat$n.years >= 3,]
+dat <- droplevels(dat)
+dat[dat$p.lu > 1,'p.wild'] <- 0
+dat[dat$p.lu > 1,'p.lu'] <- 1
+dat$lu <- subset(dat, select = land.use.var)[,1]
+dat$s.yr <- as.numeric(scale(dat$year))
+dat$s.nyr <- as.numeric(scale(dat$n.years))
+dat$lu <- as.numeric(scale(dat$lu))
+dat$sc.pop <- as.numeric(scale(log1p(subset(dat, select =human.dens.var))[,1]))
+dat$salat <- as.numeric(scale(abs(dat$lat))) #absolute value of latitude
+dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
+dat$slong <- as.numeric(scale(dat$long))
+
+model0 <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+model1 <- cpglmm(div ~ 1 + s.yr+lu + (1+s.yr+lu|pop) + (1|cell), data=dat, weights = log(nseqs))
+
+AIC(model0,model1)
+summary(model1)
 
