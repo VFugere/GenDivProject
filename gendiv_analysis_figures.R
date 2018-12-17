@@ -762,7 +762,7 @@ for(j in 1:4){
   # corvif(dat[,c('s.yr','s.nyr','lu','salat','sc.pop')])
   
   #model: weighing or not, adding correlated intercept/slope or not, does not change anything
-  model <- cpglmm(div ~ 1 + s.yr + (s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+  model <- cpglmm(div ~ 1 + s.yr + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
   #model <- cpglmm(div ~ 1 + s.yr + (s.yr-1|pop) + (1|pop), data=dat)
   #model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop), data=dat, weights = log(nseqs))
   #model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop), data=dat)
@@ -830,12 +830,12 @@ for(j in 1:4){
   # plot(R~Yfit,dat,ylab='standardized residuals',xlab='fitted',pch=16,col=alpha(1,0.2))
   
   #more complex model with other predictors
-  model2 <- cpglmm(div ~ 1 + s.yr + s.nyr + lu + (s.yr|pop) + (lu-1|pop) + (1|cell), data=dat, weights = log(nseqs))
-  model3 <- cpglmm(div ~ 1 + s.yr + s.nyr + sc.pop + (s.yr|pop) + (sc.pop-1|pop) + (1|cell), data=dat, weights = log(nseqs))
-  model4 <- cpglmm(div ~ 1 + s.yr + s.nyr + salat + (s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
-  
+  model2 <- cpglmm(div ~ 1 + s.yr + s.nyr + lu + (s.yr|pop) + (lu-1|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
+  model3 <- cpglmm(div ~ 1 + s.yr + s.nyr + sc.pop + (s.yr|pop) + (sc.pop-1|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
+  model4 <- cpglmm(div ~ 1 + s.yr + s.nyr + salat + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
+
   tsmodels <- append(tsmodels,c(model,model2,model3,model4))
-  
+
   # HAD TO DITCH THIS PART BECAUSE HIGHLY COLINEAR PREDICTORS THAT CANNOT BE INCLUDED IN THE SAME MODEL
   # #getting coefs
   # coefs <- rownames_to_column(as.data.frame(summary(model2)$coefs)) %>%
@@ -899,7 +899,7 @@ tblS2 <- tblS2 %>% mutate_at(vars(value:se), funs(round(.,2))) %>%
 
 tblS2 <- tblS2 %>% group_by(model) %>% spread(key = coef, value = values, fill = NA) %>%
   select(1,4,3,5,2,6)
-write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
+#write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
 
 #### re-doing analysis, but excluding time series less than x years ####
 
@@ -933,7 +933,7 @@ for(z in 3:7){
     dat$s.nyr <- as.numeric(scale(dat$n.years))
     dat$snseqs <- as.numeric(scale(log(dat$nseqs)))
     
-    model <- cpglmm(div ~ 1 + s.yr + (1+s.yr|pop) + (1|cell), data=dat, weights = log(nseqs))
+    model <- cpglmm(div ~ 1 + s.yr + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
     
     ef <-  fixef(model)[2]
     lwr <- fixef(model)[2] - summary(model)$coefs[2,2]*1.96
@@ -954,7 +954,7 @@ for(z in 3:7){
 results$tax <- str_replace(results$tax, 'acti', 'fish')
 results <- results %>% arrange(tax)
 
-#pdf('~/Desktop/FigS3.pdf',width=5,pointsize = 8,height=6)
+pdf('~/Desktop/FigS3.pdf',width=5,pointsize = 8,height=6)
 
 layout(rbind(c(1,1),c(2,3),c(4,5)))
 par(mar=c(4,4,1,1),oma=c(0,0,0,0),cex=1)
@@ -981,4 +981,4 @@ for(i in 1:4){
   abline(lm(slopes~n.years_mean,subset(tsdat, tax == taxa[i])),lwd=2)
 }
 
-#dev.off()
+dev.off()
