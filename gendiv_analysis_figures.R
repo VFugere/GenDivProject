@@ -899,7 +899,7 @@ tblS2 <- tblS2 %>% mutate_at(vars(value:se), funs(round(.,2))) %>%
 
 tblS2 <- tblS2 %>% group_by(model) %>% spread(key = coef, value = values, fill = NA) %>%
   select(1,3,7,5,2,4,8,6)
-write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
+#write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
 
 #### re-doing analysis, but excluding time series less than x years ####
 
@@ -982,3 +982,27 @@ for(i in 1:4){
 }
 
 dev.off()
+
+### how many time series, species etc.?
+
+alldata_TS <- data.frame()
+
+for(j in 1:4){
+  dat <- get(paste0(shortax[j],scales[i],'.agg')) %>%
+    filter(.,!is.na(select(.,human.dens.var))) %>% 
+    filter(year >= treshold.yr)
+  dat %<>% filter(div < mean(div)+10*sd(div))
+  dat <- dat %>% select(-n.years) %>% add_count(pop) %>% rename(n.years = n)
+  dat <- dat[dat$n.years >= 3,]
+  dat <- droplevels(dat)
+  alldata_TS <- bind_rows(alldata_TS,dat)
+}
+
+n_distinct(alldata_TS$pop)
+n_distinct(alldata_TS$species)
+n_distinct(alldata_TS$cell)
+alldata_TS %>% group_by(pop) %>% summarize(nb.yr = n())
+alldata_TS %>% group_by(pop) %>% summarize(nb.yr = n()) -> temp
+mean(temp$nb.yr)
+range(temp$nb.yr)
+
