@@ -830,10 +830,10 @@ for(j in 1:4){
   # plot(R~Yfit,dat,ylab='standardized residuals',xlab='fitted',pch=16,col=alpha(1,0.2))
   
   #more complex model with other predictors
-  model2 <- cpglmm(div ~ 1 + s.yr + s.nyr + lu + (s.yr|pop) + (lu-1|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
-  model3 <- cpglmm(div ~ 1 + s.yr + s.nyr + sc.pop + (s.yr|pop) + (sc.pop-1|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
-  model4 <- cpglmm(div ~ 1 + s.yr + s.nyr + salat + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
-
+  model2 <- cpglmm(div ~ 1 + s.yr*salat + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
+  model3 <- cpglmm(div ~ 1 + s.yr*lu + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
+  model4 <- cpglmm(div ~ 1 + s.yr*sc.pop + (s.yr|pop) + (1|cell) + (1|species), data=dat, weights = log(nseqs))
+  
   tsmodels <- append(tsmodels,c(model,model2,model3,model4))
 
   # HAD TO DITCH THIS PART BECAUSE HIGHLY COLINEAR PREDICTORS THAT CANNOT BE INCLUDED IN THE SAME MODEL
@@ -898,8 +898,8 @@ tblS2 <- tblS2 %>% mutate_at(vars(value:se), funs(round(.,2))) %>%
   mutate('values' = paste0(value,' (',se,')')) %>% select(-value, -se)
 
 tblS2 <- tblS2 %>% group_by(model) %>% spread(key = coef, value = values, fill = NA) %>%
-  select(1,4,3,5,2,6)
-#write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
+  select(1,3,7,5,2,4,8,6)
+write_xlsx(tblS2, '~/Desktop/TableS2.xlsx')
 
 #### re-doing analysis, but excluding time series less than x years ####
 
