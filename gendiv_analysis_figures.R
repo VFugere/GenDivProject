@@ -265,7 +265,7 @@ for(j in 1:4){
 #### figure 2 ####
 
 # maps of genetic diversity
-#pdf('~/Desktop/2a.pdf',width=5,height=10,pointsize = 6)
+#pdf('~/Desktop/Fig2.pdf',width=5,height=10,pointsize = 6)
 
 par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1)
 #cols2<-rev(c("#7A1E07", "#DE0D0D", "#F57A08", "#F5ED03", "#9FE685", "#40B316", "#4388F0", "#0000C4"))
@@ -351,103 +351,125 @@ for(j in 1:4){
 # }
 # #dev.off()
 
-#pdf('~/Desktop/Fig2b.pdf',width=2.5,height = 7, pointsize=8)
-par(mfrow=c(4,1),oma=c(0,0,0,0),mar=c(4,4,1,1),cex=1)
+#### Fig 3: div as a function of drivers ####
+
+#pdf('~/Desktop/Fig3.pdf',pointsize = 8, width=8,height=10)
+par(mfrow=c(5,4),oma=c(0,2.5,0,0),cex=1,mar=c(4,2,1,1))
+
+scl <- '4'
+wigl <- 0.7
+lncol <- c("#00329E")
+
+#time
 for(j in 1:4){
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% group_by(year) %>%
+  y <- filter(alldata, scale == scl, tax == taxa[j]) %>% group_by(year) %>%
     summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>% filter(!is.na(ci)) %>% as.data.frame()
-  plot(mean~year,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=range(c(y$mean-y$ci,y$mean+y$ci)))
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  ymax <- max(y$mean)
+  yticks <- seq(0,ymax,length.out = 5)
+  ytickslab <- round(seq(0,ymax,length.out = 3),3)
+  ytickslab <- c(ytickslab[1],'',ytickslab[2],'',ytickslab[3])
+  plot(mean~year,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',xlim=c(1980,2016),ylim=c(0,ymax))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1, at=yticks, labels = ytickslab)
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(1980,2016,length.out = 5))
   y$lwr <- y$mean - y$ci
   y$upr <- y$mean + y$ci
   arrows(x0=y$year,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
   points(mean~year,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
-  lines(smooth.spline(y=y$mean,x=y$year,spar=0.6),lwd=3,col=alpha(1,0.4))
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
-  title(ylab='mean genetic diversity', cex.lab=1)
-  title(xlab='year', cex.lab=1)
+  lines(smooth.spline(y=y$mean,x=y$year,spar=wigl,w=log(y$n)),lwd=3,col=alpha(lncol,0.6))
+  #label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  #add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  title(xlab='year', cex.lab=1.3, line = 2.7)
 }
-#dev.off()
-
-#### Fig. S2: other drivers of gen div ####
-
-#pdf('~/Desktop/FigS2.pdf',pointsize = 8, width=8,height=8)
-par(mfrow=c(4,4),oma=c(0,2.5,0,0),cex=1,mar=c(4,2,1,1))
 
 #latitude
 for(j in 1:4){
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>%
+  y <- filter(alldata, scale == scl, tax == taxa[j]) %>%
     mutate(lat = abs(lat)) %>% group_by(lat) %>%
-    summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>% filter(!is.na(ci)) %>% as.data.frame()
-  plot(mean~lat,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+    summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
+    filter(!is.na(ci)) %>% as.data.frame()
+  ymax <- max(y$mean)
+  yticks <- seq(0,ymax,length.out = 5)
+  ytickslab <- round(seq(0,ymax,length.out = 3),3)
+  ytickslab <- c(ytickslab[1],'',ytickslab[2],'',ytickslab[3])
+  plot(mean~lat,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,max(y$mean)))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1, at=yticks, labels = ytickslab)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
   y$lwr <- y$mean - y$ci
   y$upr <- y$mean + y$ci
   arrows(x0=y$lat,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
   points(mean~lat,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
-  lines(smooth.spline(y=y$mean,x=y$lat,spar=0.6),lwd=3,col=alpha(1,0.4))
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  lines(smooth.spline(y=y$mean,x=y$lat,spar=wigl,w=log(y$n)),lwd=3,col=alpha(lncol,0.6))
+  # label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  # add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
   title(xlab='absolute latitude (degrees)', cex.lab=1.3, line=2.7)
 }
 
 #longitude
 for(j in 1:4){
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% 
+  y <- filter(alldata, scale == scl, tax == taxa[j]) %>% 
     mutate(long = midpoints(cut(long,30))) %>% group_by(long) %>%
     summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
     filter(!is.na(ci)) %>% as.data.frame()
-  plot(mean~long,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  ymax <- max(y$mean)
+  yticks <- seq(0,ymax,length.out = 5)
+  ytickslab <- round(seq(0,ymax,length.out = 3),3)
+  ytickslab <- c(ytickslab[1],'',ytickslab[2],'',ytickslab[3])
+  plot(mean~long,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,max(y$mean)))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1, at=yticks, labels = ytickslab)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
   y$lwr <- y$mean - y$ci
   y$upr <- y$mean + y$ci
   arrows(x0=y$long,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
   points(mean~long,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
-  lines(smooth.spline(y=y$mean,x=y$long,spar=0.6),lwd=3,col=alpha(1,0.4))
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  lines(smooth.spline(y=y$mean,x=y$long,spar=wigl,w=log(y$n)),lwd=3,col=alpha(lncol,0.6))
+  # label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  # add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
   title(xlab='longitude (degrees)', cex.lab=1.3, line=2.7)
 }
 
 #land use
 for(j in 1:4){
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% 
+  y <- filter(alldata, scale == scl, tax == taxa[j]) %>% 
     mutate(p.lu = midpoints(cut(p.lu,30))) %>% group_by(p.lu) %>%
     summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
     filter(!is.na(ci)) %>% as.data.frame()
-  plot(mean~p.lu,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  ymax <- max(y$mean)
+  yticks <- seq(0,ymax,length.out = 5)
+  ytickslab <- round(seq(0,ymax,length.out = 3),3)
+  ytickslab <- c(ytickslab[1],'',ytickslab[2],'',ytickslab[3])
+  plot(mean~p.lu,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,max(y$mean)))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1, at=yticks, labels = ytickslab)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
   y$lwr <- y$mean - y$ci
   y$upr <- y$mean + y$ci
   arrows(x0=y$p.lu,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
   points(mean~p.lu,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
-  lines(smooth.spline(y=y$mean,x=y$p.lu,spar=0.6),lwd=3,col=alpha(1,0.4))
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  lines(smooth.spline(y=y$mean,x=y$p.lu,spar=wigl,w=log(y$n)),lwd=3,col=alpha(lncol,0.6))
+  # label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  # add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
   title(xlab='land use (proportion)', cex.lab=1.3, line=2.7)
 }
 
 #human density
 for(j in 1:4){
-  y <- filter(alldata, scale == '4', tax == taxa[j]) %>% 
+  y <- filter(alldata, scale == scl, tax == taxa[j]) %>% 
     mutate(pop_tot = midpoints(cut(log1p(pop_tot),30))) %>% group_by(pop_tot) %>%
     summarise(mean = mean(div),ci = 1.96*(sd(div)/sqrt(n())), n = n()) %>%
     filter(!is.na(ci)) %>% as.data.frame()
-  plot(mean~pop_tot,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,range(c(y$mean-y$ci,y$mean+y$ci))[2]))
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+  ymax <- max(y$mean)
+  yticks <- seq(0,ymax,length.out = 5)
+  ytickslab <- round(seq(0,ymax,length.out = 3),3)
+  ytickslab <- c(ytickslab[1],'',ytickslab[2],'',ytickslab[3])
+  plot(mean~pop_tot,y,type='n',yaxt='n',xaxt='n',ann=F,bty='l',ylim=c(0,max(y$mean)))
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1, at=yticks, labels = ytickslab)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
   y$lwr <- y$mean - y$ci
   y$upr <- y$mean + y$ci
   arrows(x0=y$pop_tot,y0=y$lwr,y1=y$upr,length=0,lwd=1.5,col=alpha(1,0.4))
   points(mean~pop_tot,y,pch=21,cex=1,col=1,bg=alpha(cols[j],0.8))
-  lines(smooth.spline(y=y$mean,x=y$pop_tot,spar=0.6),lwd=3,col=alpha(1,0.4))
-  label <- image_data(phylopic.ids[j], size = 128)[[1]]
-  add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
+  lines(smooth.spline(y=y$mean,x=y$pop_tot,spar=wigl,w=log(y$n)),lwd=3,col=alpha(lncol,0.6))
+  # label <- image_data(phylopic.ids[j], size = 128)[[1]]
+  # add_phylopic_base(label, x = 0.85, y = 0.9, ysize = 0.2, alpha=1,color=1)
   title(xlab='human density (log1+x)', cex.lab=1.3, line=2.7)
 }
 
@@ -624,14 +646,23 @@ tableS1 <- modseltbl %>% group_by(model) %>% spread(key = coef, value = values, 
   select(1,4,9,14,2,13,6,8,5,7,12,10,11,15,16,3)
 #write_xlsx(tableS1, '~/Desktop/TableS1.xlsx')
 
-#### Caterpillar plot (Figure 3) ####
+# #### Testing for some visible non-linear effects (Fig 3) with GAMMs
+# 
+# library(mgcv)
+# d <- modeldata %>% filter(scale == '4', tax == 'mammals')
+# d$lhd <- log1p(d$pop_tot)
+# m <- gam(div ~ s(lhd), data=d)
+# summary(m); plot(m)
+# gam.check(m)
+
+#### Caterpillar plot (Figure 4) ####
 
 ##making the coef matrices: one each for coef values, lwr bound, and upr bound
 
 #useful vectors
 mod.kp <- c(3,6,9,13,16,19,22,26,29,32,35,38,41,44,47,50)
-tax.scale <- data.frame('taxon' = rep(c('mam','bird','fish','insect'),4),
-                        'scale' = rep(c(0.08,1,2,4), each = 4))
+tax.scale <- expand.grid('taxon' = c('mam','bird','fish','insect'),
+                        'scale' = c(0.08,1,2,4))
 colvec <- rep(rev(cols), each = 4)
 
 #getting coefs
@@ -649,26 +680,26 @@ se <- modseltbl %>% select(-value) %>% mutate(se = se*1.96) %>% group_by(model) 
   ungroup %>% select(-model)
 
 #re-arranging in right order from birds to mammals top to bottom
-coefs <- coefs[c(13,9,5,1,16,12,8,4,15,11,7,3,14,10,6,2),]
-se <- se[c(13,9,5,1,16,12,8,4,15,11,7,3,14,10,6,2),]
+coefs <- coefs[c(1,5,9,13,4,8,12,16,3,7,11,15,2,6,10,14),]
+se <- se[c(1,5,9,13,4,8,12,16,3,7,11,15,2,6,10,14),]
 coefs <- as.data.frame(coefs)
 lwr <- coefs - se
 upr <- coefs + se
 
-##figure 3
+##figure 4
 
-#pdf(file = '~/Desktop/Fig3.pdf',width=8.5,height=3,pointsize=7)
+pdf(file = '~/Desktop/Fig4.pdf',width=8.5,height=3,pointsize=7)
 par(mfrow=c(1,1),mar=c(4,3,1,1),cex=1,oma=c(0,0,0,0))
 plot(0,type='n',yaxt='n',xaxt='n',cex.axis=1,ann=F,bty='n',xlim=c(0,15.1),ylim=c(0.5,16.5),yaxs='i', xaxs='i')
 for(i in seq(0.5,15.5,by=2)){
   polygon(x=c(0,15,15,0),y=c(i,i,i+1,i+1),col='light gray',border=NA)
 }
-axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=1:16,labels = rep(rev(c("5'",'1°','2°','4°')),4),las=1)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=0,at=1:16,labels = rep(c("5'",'1°','2°','4°'),4),las=1)
 axis(2,cex.axis=1,lwd=1,lwd.ticks=1,at=c(0.5,4.5,8.5,12.5,16.5), labels = rep('',5))
 abline(v=1:15,lty=1,lwd=0.5)
 abline(v=seq(from=0.5,to=14.5,by=1),lty=2,lwd=0.5)
 abline(h=c(4.5,8.5,12.5))
-axis(1,cex.axis=0.7,lwd=0,lwd.ticks=0,at=seq(from=0.5,to=14.5,by=1),labels=rep(0,15),line=-0.75)
+axis(1,cex.axis=1,lwd=0,lwd.ticks=0,at=seq(from=0.5,to=14.5,by=1),labels=rep(0,15),line=-0.75)
 axis(1,cex.axis=0.7,lwd=1,lwd.ticks=0.5,at=seq(from=0,to=15,by=1),labels=rep('',16))
 axis(1,cex.axis=1,lwd=0,lwd.ticks=0,at=seq(from=0.5,to=14.5,by=1),labels=c('YR','LAT','LONG','LU','HD','YR:LAT','YR:LONG','YR:LU','YR:HD','LAT:LONG','LAT:LU','LAT:HD','LONG:LU','LONG:HD','LU:HD'),line=1)
 for(i in 1:15){
@@ -693,7 +724,9 @@ for(i in 1:15){
     points(x=pt,y=j,pch=21,col=1,bg=ptfill,cex=1.2)
   }
 }
-#dev.off()
+dev.off()
+
+#####
 
 rm(models, models08, models1, models2, models4, modeldata)
 
@@ -1004,5 +1037,6 @@ n_distinct(alldata_TS$cell)
 alldata_TS %>% group_by(pop) %>% summarize(nb.yr = n())
 alldata_TS %>% group_by(pop) %>% summarize(nb.yr = n()) -> temp
 mean(temp$nb.yr)
+sd(temp$nb.yr)/sqrt(nrow(temp))
 range(temp$nb.yr)
 
