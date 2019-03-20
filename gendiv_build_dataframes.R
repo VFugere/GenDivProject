@@ -1,62 +1,25 @@
-#### Temporal variation in intra-specific neutral genetic diversity across anthromes
-#### Gonzalez Lab project - McGill University - 2016-2018
-#### Script by Vincent Fugère
+## Vincent Fugère 2016-2019
 
-## This script takes pairwise sequence comparions and compute a mean genetic
-## diversity value for each species x year x grid cell combination (population)
-## Also adds land use and human density values to each gen div value,
-## using latest land use map available
-
-#### Part I: load and format data
+# This script takes pairwise sequence comparisons (Julia output) and
+# compute a mean genetic diversity value (pi hat) for each population.
+# A population is a species x year x spatial cluster combination.
 
 rm(list=ls())
 library(tidyverse)
 library(magrittr)
 
-#list of special characters which could occur in species names
-#things we want to remove (ie species containing these symbols are discarded)
-unwanted <- c('\\.',0:9,'BOLD','-','#','_nsp','spnov')
-unwanted <- paste(unwanted, collapse = '|')
+# steps:
+# -get rid of NAs and < 50 overlap
+# -rename cell to pop
+# -pour chaque pop, calculer:
+#   -div = mean(num_per_bp)
+#   -ncomps = nrow()
+#   -nseqs = n_unique dans les deux colonnes seq 1 et seq 2
 
-#### index dataframe to choose land use map closest in time to sequence
-
-#very long  time gradient (going far back in time) to make sure program doesn't crash but in fact
-#all sequences used are > 1980
-map.yr.idx <- data.frame(
-  'seq.yr' = 1800:2017,
-  'map.yr' = c(rep(1980,190),rep(1990,10),2000:2017)
-)
-
-distinct(map.yr.idx, map.yr) %>% as.data.frame(.) -> map.yrs
-map.yrs <- as.numeric(map.yrs$map.yr)
-
-#### scale of aggregation = 0.08' grid cells ####
-
-#load and format maps
-for(i in 1:length(map.yrs)){
-  fname <- paste0('hyde32_',map.yrs[i],'_08')
-  path <- paste0('~/Google Drive/recherche/Intraspecific genetic diversity/data/',fname,'.RData')
-  load(path)
-  if(i == 1){
-    get(fname) %>% filter(!is.na(pop_tot)) %>% mutate_at(vars(lat:long), funs(round(as.numeric(.),3))) %>%
-      mutate('cell' = paste0(.data$lat,'_',.data$long)) %>% select(-lat, -long) %>%
-      mutate('mapyear' = map.yrs[i]) %>% select(mapyear,cell,everything()) -> lu.map
-  } else {
-    get(fname) %>% filter(!is.na(pop_tot)) %>% mutate_at(vars(lat:long), funs(round(as.numeric(.),3))) %>%
-      mutate('cell' = paste0(.data$lat,'_',.data$long)) %>% select(-lat, -long) %>%
-      mutate('mapyear' = map.yrs[i]) %>% select(mapyear,cell,everything()) -> tmp.map
-    lu.map <- bind_rows(lu.map,tmp.map)
-  }
-  rm(list = c(fname))
-}
-rm(tmp.map)
-
-## MAMMALS
 
 mam08 <- read.csv('~/Google Drive/recherche/Intraspecific genetic diversity/data/mamm_pairwise_0.08by0.08_anth.csv')
 
 colnames(mam08)[1] <- 'species.year.ID' #to be consistent with other files
-colnames(mam08)[10] <- 'anth' #change new name back to old to be consistent with analysis script
 
 # add year & species (split column)
 info <- unlist(strsplit(as.character(mam08$species.year.ID), '[.]'))

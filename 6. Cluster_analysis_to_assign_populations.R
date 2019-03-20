@@ -8,8 +8,11 @@
 # column 'population' that is used to decide what sequences are being
 # grouped together in the other analyses (pi hat, D, and LU mean and var)
 
+rm(list=ls())
+
 library(tidyverse)
 library(sp)
+options(scipen = 999)
 
 #master parameter: min distances among groups of sequences to be considered separate pops
 #in km (Great Circle distance)
@@ -57,7 +60,7 @@ for(scale in scales){
       }
       
       #create groups/clusters
-      d <- spDists(as.matrix(outdat[,2:3]), longlat=TRUE)
+      d <- spDists(as.matrix(outdat[,3:2]), longlat=TRUE)
       d <- as.dist(d)
       hc <- hclust(d, method = 'single')
       outdat$group <- paste(sp,scale,cutree(hc, h = minim.dist),sep='_')
@@ -69,9 +72,6 @@ for(scale in scales){
         fname <- str_remove(file,'.coords')
         write.table(dat, file = file.path(output.dir, fname), sep = "\t", col.names = F, row.names = F)
       }
-      
     }
-    
   }
-  
 }
