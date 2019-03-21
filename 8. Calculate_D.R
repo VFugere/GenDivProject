@@ -2,7 +2,7 @@
 
 # This code calculates mean spatial (Great Circle) distance among a set of coordinates
 # in a .coords file, looping along all .coords files in a defined set of folders
-# returns for all populations 'D' sensu Gratton et al. 2017 TREE
+# Returns, for all populations, 'D' sensu Gratton et al. 2017 TREE
 
 rm(list=ls())
 
