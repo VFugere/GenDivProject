@@ -16,38 +16,36 @@ mean.pi <- data.frame('pop' = character(0), 'year' = numeric(0),
                       stringsAsFactors = F)
 
 #path containing Julia output files 
-base.dir <- ('/Users/vincentfugere/Desktop/Data/Pairwise_sequence_comparisons/')
+dir <- ('/Users/vincentfugere/Desktop/Data/Pairwise_sequence_comparisons/')
 
-files <- list.files(base.dir)
+files <- list.files(dir)
 
 for(file in files){
   
-      filedat <- read.table(file.path(dir, file), stringsAsFactors = F)
-      pops <- unique(filedat$V1)
-      
-      #calculate for all pops separately
-      for(pop in pops){
-        
-        popdat <- filedat[filedat$V1 == pop,]
-        line <- nrow(mean.dist) + 1
-        
-        mean.dist[line,'pop'] <- popdat[1,1]
-        mean.dist[line,'year'] <- as.numeric(str_sub(file, start = -4))
-        mean.dist[line,'species'] <- str_sub(file, end = -6)
-        mean.dist[line,'taxon'] <- folder
-        mean.dist[line,'scale'] <- as.numeric(str_sub(subfolder, start = +16))
-        
-        if(nrow(popdat)==1){
-          mean.dist[line,'D'] <-  NA  
-        } else {
-          dists <- spDists(as.matrix(popdat[,3:2]), longlat=TRUE)
-          dists <- dists[lower.tri(dists, diag=F)]
-          mean.dist[line,'D'] <-  mean(dists)
-        }
-        
-      }
-      
-    }
+  filedat <- read_csv(file.path(dir, file)) %>%
+    rename(pop = cell) %>%
+    filter(overlap >= 0.5) %>% #removes pairwise comparisons with less than 50% sequence overlap
+    filter(!is.na(num_per_bp)) %>% #removes sequences alone in their pop, which have NA for seq1:num_per_bp
+    as.data.frame
+  
+  pops <- unique(filedat$pop)
+  fileinfo <- str_remove(file, '.csv') %>% str_split('_', simplify = T)
+  
+  #calculate for all pops separately
+  for(pop in pops){
+    
+    popdat <- filedat[filedat$pop == pop,]
+    line <- nrow(mean.pi) + 1
+    
+    mean.pi[line,'pop'] <- popdat[1,2]
+    mean.pi[line,'year'] <- as.numeric(str_split(popdat[1,1], '\\.', simplify = T)[1,2])
+    mean.pi[line,'taxon'] <- fileinfo[1,2]
+    mean.pi[line,'scale'] <- fileinfo[1,4]
+    mean.pi[line,'species'] <- str_split(popdat[1,1], '\\.', simplify = T)[1,1]
+    
+    mean.pi[line,'div'] <- mean(popdat$num_per_bp)
+    mean.pi[line,'nseqs'] <- n_distinct(c(popdat[,3],popdat[,4]))
+    mean.pi[line,'ncomps'] <- nrow(popdat)
     
   }
   
