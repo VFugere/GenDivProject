@@ -1,6 +1,7 @@
 ##
 # Script to plot coordinates on map, determine if on cell border
-# remove coord and fast lines that land on border
+# remove coord and fasta lines that land on grid cell border because 
+# can't assign land use values unambiguously
 #
 # Workflow:
 #  iterate through each line of coordsdf, first column lat second column long
@@ -11,6 +12,7 @@
 #  write coords and fasta line to new file
 ############################################
 
+rm(list=ls())
 library(stringr)
 
 # Chloe's function
