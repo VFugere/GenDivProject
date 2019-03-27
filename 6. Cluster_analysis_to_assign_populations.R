@@ -75,3 +75,21 @@ for(scale in scales){
     }
   }
 }
+
+
+#Need to clean up the FASTA files because species with a single sequence across all years
+#have been dropped from the analysis. Corresponding Fasta files have to be deleted since
+#Julia script requires a matching number of fasta and coords files
+
+for(folder in folders){
+  #take one of the folder with grouped coords files (all folders have the same number of files so it does not matter which)
+  grouped_files <- list.files(paste0(base.dir,folder,'/grouped_mindist',minim.dist))
+  fasta.dir <- paste0('/Users/vincentfugere/Desktop/Data/FASTA_files/',folder)
+  fasta.files <- list.files(fasta.dir, pattern = ".fasta")
+  to.rm <- fasta.files[!(str_remove(fasta.files, '.fasta') %in% grouped_files)]
+  setwd(fasta.dir)
+  for(badfile in to.rm){
+    file.remove(badfile)
+  }
+}
+  
