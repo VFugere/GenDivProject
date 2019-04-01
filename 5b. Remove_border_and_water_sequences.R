@@ -62,7 +62,7 @@ fasta.dir <- ('/Users/vincentfugere/Desktop/Data/FASTA_files/')
 summary.dir <- ('/Users/vincentfugere/Desktop/Data/Summary_deleted_sequences/')
 
 #load HYDE 3.2 data
-load('/Users/vincentfugere/Desktop/Data/Hyde_fileshyde32_2017_08.RData') # add directory
+load('/Users/vincentfugere/Desktop/Data/Hyde_files/hyde32_2017_08.RData') # add directory
 hyde32_2017_08 <- hyde32_2017_08[,1:3]
 hyde32_2017_08$lat <- round(hyde32_2017_08$lat, 5)
 hyde32_2017_08$long <- round(hyde32_2017_08$long, 5)
@@ -95,8 +95,8 @@ for(folder in folders){
     coordsfile<-paste0(n, ".coords")
     fastafile<-paste0(n, ".fasta")
     
-    coords.df <- read.table(paste(input.coords, coordsfile, sep="/"), header = FALSE)
-    fasta.df <- read.table(paste(input.fasta, fastafile, sep="/"), header = FALSE)
+    coords.df <- read.table(paste0(input.coords, coordsfile), header = FALSE)
+    fasta.df <- read.table(paste0(input.fasta, fastafile), header = FALSE)
     
     # identify sequences that fall on cell border & get HYDE 3.2 cell coordinates
     coords.df[, c("cell_lat", "cell_long", "border")] <- t(mapply(FUN=cell_coords, lat_seq=coords.df[,1], long_seq=coords.df[,2]))
