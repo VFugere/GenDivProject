@@ -62,10 +62,13 @@ fasta.dir <- ('/Users/vincentfugere/Desktop/Data/FASTA_files/')
 summary.dir <- ('/Users/vincentfugere/Desktop/Data/Summary_deleted_sequences/')
 
 #load HYDE 3.2 data
-load('/Users/vincentfugere/Desktop/Data/Hyde_files/hyde32_2017_08.RData') # add directory
+load('/Users/vincentfugere/Desktop/Data/Hyde_files/hyde32_2017_08.RData')
 hyde32_2017_08 <- hyde32_2017_08[,1:3]
 hyde32_2017_08$lat <- round(hyde32_2017_08$lat, 5)
 hyde32_2017_08$long <- round(hyde32_2017_08$long, 5)
+hyde32_2017_08 <- hyde32_2017_08[which(!is.na(hyde32_2017_08$conv_rangeland)),]
+cells_on_land <- paste(hyde32_2017_08$lat, hyde32_2017_08$long, sep="_")
+rm(hyde32_2017_08)
 
 #name of subfolders (taxa)
 folders <- list.files(coords.dir)
@@ -112,8 +115,9 @@ for(folder in folders){
     # get row numbers of sequences that don't fall in water
     coords.df$cell_lat <- round(coords.df$cell_lat, 5)
     coords.df$cell_long <- round(coords.df$cell_long, 5)
-    coords.df <- left_join(coords.df, hyde32_2017_08, by=c("cell_lat" = "lat", "cell_long" = "long"))
-    seqs_keep <- which(!is.na(coords.df$conv_rangeland))
+    coords.df$cell <- paste(coords.df$cell_lat, coords.df$cell_long, sep="_")
+    coords.df$water <- ifelse(coords.df$cell %in% cells_on_land, 0, 1)
+    seqs_keep <- which(coords.df$water == 0)
     nseqs_removed_water <- nrow(coords.df) - length(seqs_keep)
     
     # only keep corresponding sequences in .coords and .fasta files
