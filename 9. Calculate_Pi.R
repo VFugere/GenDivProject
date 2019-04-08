@@ -26,22 +26,24 @@ for(file in files){
     rename(pop = cell) %>%
     filter(overlap >= 0.5) %>% #removes pairwise comparisons with less than 50% sequence overlap
     filter(!is.na(num_per_bp)) %>% #removes sequences alone in their pop, which have NA for seq1:num_per_bp
+    separate(col = 'species', into = c('species','year'), sep = '\\.') %>%
     as.data.frame
   
-  pops <- unique(filedat$pop)
+  filedat$pop_yr <- paste(filedat$pop,filedat$year,sep='_') 
+  pis <- unique(filedat$pop_yr)
   fileinfo <- str_remove(file, '.csv') %>% str_split('_', simplify = T)
   
   #calculate for all pops separately
-  for(pop in pops){
+  for(pi in pis){
     
-    popdat <- filedat[filedat$pop == pop,]
+    popdat <- filedat[filedat$pop_yr == pi,]
     line <- nrow(mean.pi) + 1
     
-    mean.pi[line,'pop'] <- popdat[1,2]
-    mean.pi[line,'year'] <- as.numeric(str_split(popdat[1,1], '\\.', simplify = T)[1,2])
+    mean.pi[line,'pop'] <- popdat[1,3]
+    mean.pi[line,'year'] <- popdat[1,2]
     mean.pi[line,'taxon'] <- fileinfo[1,2]
     mean.pi[line,'scale'] <- fileinfo[1,4]
-    mean.pi[line,'species'] <- str_split(popdat[1,1], '\\.', simplify = T)[1,1]
+    mean.pi[line,'species'] <- popdat[1,1]
     
     mean.pi[line,'div'] <- mean(popdat$num_per_bp)
     mean.pi[line,'nseqs'] <- n_distinct(c(popdat[,3],popdat[,4]))
