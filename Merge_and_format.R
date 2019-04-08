@@ -30,7 +30,15 @@ alldata %>% filter(n.years >= 3) %>%
 #that we are not simply cutting pops into small units
 
 #get spatial centroids of pops
+load('~/Desktop/Data/sequence_metadata.RData')
+sc10 <- seq %>% group_by(pop10) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop10)
+sc100 <- seq %>% group_by(pop100) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop100)
+sc1000 <- seq %>% group_by(pop1000) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop1000)
+sc10000 <- seq %>% group_by(pop10000) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop10000)
+sc100000 <- seq %>% group_by(pop100000) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop100000)
+centroids <- bind_rows(sc10,sc100,sc1000,sc10000,sc100000) %>% filter(nseqs > 1) %>% select(-nseqs)
+rm(seq,sc10,sc100,sc1000,sc10000,sc100000)
 
 
-#simulating data while waiting for Chloe's file
+
 
