@@ -10,13 +10,8 @@ library(tidyverse)
 load('~/Desktop/Data/DF_D.Rdata')
 load('~/Desktop/Data/DF_Pi.Rdata')
 
-filter(DF_D, species == "Scatopsciara_atomaria")
-filter(DF_Pi, species == "Scatopsciara_atomaria")
-
 DF_Pi <- select(DF_Pi, -(taxon:species))
-
-with(subset(DF_Pi, species == 'Scatopsciara_atomaria'), table(year,pop))
-with(subset(DF_D, species == 'Scatopsciara_atomaria'), table(year,pop))
+DF_Pi$year <- as.numeric(DF_Pi$year)
 
 alldata <- inner_join(DF_D, DF_Pi, by = c('pop','year'))
 
@@ -25,12 +20,17 @@ alldata %>% group_by(scale) %>% summarize(pops = n_distinct(pop))
 #10K vs. no treshold have almost the same number of pops (32 pops diff)
 #Biggest jump is from 1K to 100, loosing 5K pops
 
-alldata <- alldata %>% group_by(pop) %>% add_tally(name = 'nyrs')
-hist(alldata$nyrs,breaks=100)
+alldata <- alldata %>% group_by(pop) %>% add_tally(name = 'n.years')
 
-#?
+#how many time series?
+alldata %>% filter(n.years >= 3) %>%
+  group_by(scale, taxon) %>%
+  summarize('pops' = n_distinct(pop), 'species' = n_distinct(species))
+#plenty! and number of species ~ number of pops even at smallest scales, indicating
+#that we are not simply cutting pops into small units
 
-lrgsc <- filter(alldata, scale == '1e+05')
-  
+#get spatial centroids of pops
+
+
 #simulating data while waiting for Chloe's file
 
