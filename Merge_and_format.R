@@ -41,7 +41,7 @@ rm(sc10,sc100,sc1000,sc10000,sc100000)
 alldata <- left_join(alldata, centroids, by = 'pop')
 
 #add human impact variables
-sc10 <- seq %>% group_by(pop10,year) %>% summarize('nseqs' = n(),'hd' = mean(pop_tot), 'p.lu' = mean(conv_rangeland+cropland+pasture+urban,na.rm = T), 'lu.div' = exp(diversity(c(.$conv_rangeland,.$rangeland,.$urban),index='shannon'))) %>% rename('pop' = pop10)
+sc10 <- seq %>% group_by(pop10,year) %>% summarize('nseqs' = n(),'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(conv_rangeland+cropland+pasture+urban,na.rm = T), 'lu.var' = var(conv_rangeland+cropland+pasture+urban,na.rm = T)) %>% rename('pop' = pop10)
 sc100 <- seq %>% group_by(pop100,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop100)
 sc1000 <- seq %>% group_by(pop1000,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop1000)
 sc10000 <- seq %>% group_by(pop10000,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop10000)
