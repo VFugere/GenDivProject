@@ -56,6 +56,11 @@ sc100 <- seq %>% group_by(pop100,year) %>% summarize('nseqs' = n(), 'hd' = mean(
 sc1000 <- seq %>% group_by(pop1000,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop1000)
 sc10000 <- seq %>% group_by(pop10000,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop10000)
 sc100000 <- seq %>% group_by(pop100000,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop100000)
-human.impacts <- bind_rows(sc10,sc100,sc1000,sc10000,sc100000) %>% filter(nseqs > 1) %>% select(-nseqs)
+human.impacts <- bind_rows(sc10,sc100,sc1000,sc10000,sc100000) %>% filter(nseqs > 1) %>% select(-nseqs) %>% mutate('year' = as.numeric(year))
 rm(sc10,sc100,sc1000,sc10000,sc100000)
-alldata <- left_join(alldata, human.impacts, by = 'pop')
+alldata <- left_join(alldata, human.impacts, by = c('pop','year'))
+
+DF <- alldata %>% ungroup %>% arrange(taxon,scale,year,species,pop) %>%
+  select(taxon,scale,pop,year,species,div:long,D,hd:lu.div) %>% as.data.frame
+
+save(DF, file = '/Users/vincentfugere/Desktop/Data/DF_Master.RData')
