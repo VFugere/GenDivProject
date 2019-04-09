@@ -41,11 +41,21 @@ rm(sc10,sc100,sc1000,sc10000,sc100000)
 alldata <- left_join(alldata, centroids, by = 'pop')
 
 #add human impact variables
-sc10 <- seq %>% group_by(pop10,year) %>% summarize('nseqs' = n(),'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(conv_rangeland+cropland+pasture+urban,na.rm = T), 'lu.var' = var(conv_rangeland+cropland+pasture+urban,na.rm = T)) %>% rename('pop' = pop10)
-sc100 <- seq %>% group_by(pop100,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop100)
-sc1000 <- seq %>% group_by(pop1000,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop1000)
-sc10000 <- seq %>% group_by(pop10000,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop10000)
-sc100000 <- seq %>% group_by(pop100000,year) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop100000)
+
+seq <- mutate(seq, 'low.impact' = 1-(urban+cropland+conv_rangeland+pasture), 'managed.grazing' = conv_rangeland+pasture)
+
+lu.div.func <- function(x1,x2,x3,x4){
+  y <- cbind(x1,x2,x3,x4)
+  z <- dist(y, method = "euclidean", diag = FALSE, upper = FALSE)
+  q <- mean(z)
+  return(q)
+}
+
+sc10 <- seq %>% group_by(pop10,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop10)
+sc100 <- seq %>% group_by(pop100,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop100)
+sc1000 <- seq %>% group_by(pop1000,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop1000)
+sc10000 <- seq %>% group_by(pop10000,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop10000)
+sc100000 <- seq %>% group_by(pop100000,year) %>% summarize('nseqs' = n(), 'hd' = mean(pop_tot), 'hd.var' = var(pop_tot), 'p.lu' = mean(1-low.impact,na.rm = T), 'lu.var' = var(1-low.impact,na.rm = T), 'lu.div' = lu.div.func(urban,low.impact,managed.grazing,cropland)) %>% rename('pop' = pop100000)
 human.impacts <- bind_rows(sc10,sc100,sc1000,sc10000,sc100000) %>% filter(nseqs > 1) %>% select(-nseqs)
 rm(sc10,sc100,sc1000,sc10000,sc100000)
 alldata <- left_join(alldata, human.impacts, by = 'pop')
