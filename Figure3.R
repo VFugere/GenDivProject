@@ -26,11 +26,19 @@ temp %<>% mutate('lat.sq' = scale.fun(lat^2), 'wts' = log(nseqs)/mean(log(nseqs)
 temp %<>% select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>%
   mutate_at(vars(pop,year,species), as.factor) %>% as.data.frame
 
+library(tictoc)
+tic()
+m1 <- bam(div ~ s(lat,long, bs='gp') + s(D, k = 12, bs='cr'), data = temp, family = tw, method='fREML')
+toc()
+
 library(parallel)
 cl <- makeCluster(2)
 m1 <- bam(div ~ s(lat,long) + s(lat.sq) + s(D) + s(hd) + s(hd.var) + s(p.lu) + s(lu.div) + s(year, bs='re') + s(species, bs = 're'),
           data = temp, family = tw, method='fREML',cluster=cl)
+
+tic()
 m1 <- bam(div ~ s(lat,long, k = 40) + s(D, k = 12), data = temp, family = tw, method='fREML',cluster=cl)
+toc()
 summary(m1)
 gam.check(m1)
 temp$R <- resid(m1)
