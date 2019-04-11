@@ -28,6 +28,7 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 scale.fun <-function(x){y <- scales::rescale(x, to = c(0,1)); return(y)}
 temp <- DF %>% filter(scale == '1000', taxon == 'birds')
 temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun)
+temp %<>% filter(nseqs >= 10)
 temp %<>% mutate('lat.sq' = scale.fun(lat^2), 'wts' = log(nseqs)/mean(log(nseqs)))
 temp %<>% select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>%
   mutate_at(vars(pop,year,species), as.factor) %>% as.data.frame
@@ -35,10 +36,19 @@ temp %<>% filter(div < mean(div)+10*sd(div))
 
 #smoothed genetic diversity, accounting for D and Yr
 
-m1 <- bam(div ~ s(lat,long, k = 500, m = 1) + s(D, k = 20) + s(year,bs = 're', k = 40), data = temp, family = tw, method='fREML')
+m1 <- bam(div ~ s(lat,long, k = 200, m = 1) + s(D, k = 20, bs = 'cr') + s(year,bs = 're', k = 1, m=2), data = temp, family = tw, method='fREML', discrete = T)
 gam.check(m1)
 
+tic()
+m1 <- bam(div ~ s(lat,long, k = 15, m = 1) + s(D, k = 10, bs = 'cr') + s(year,bs = 're', k = 10, m=2), data = temp, family = tw, method='fREML', discrete = T)
+toc()
+
+tic()
+m1 <- bam(div ~ s(lat,long, k = 15, m = 1) + s(D, k = 10, bs = 'cr') + s(year,bs = 're', k = 10, m=2), data = temp, family = Tweedie(p = 1.9), method='fREML', discrete = T)
+toc()
+
 plot.s(m1,'D',list('lat' = 0, 'long' = 0),1,'D','div')
+points(log(div)~D,temp,pch=16)
 
 cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
 colfunc <- colorRampPalette(cols)
@@ -52,10 +62,10 @@ temp$fit.sc <- rescale(temp$fit,to=c(0,1000))
 #temp <- temp %>% arrange(fit)
 plot(map, xlim = c(-180,180), ylim = c(-90,90), border=NA,col='grey95',axes=F,asp=1,cex.lab=0.5)
 polygon(x=c(-180,180,180,-180),y=c(-60,-60,-90,-90),col='white',border=NA)
-points(lat~long,temp,pch=21,bg='white',col=1,cex=0.5)
-points(lat~long,temp,pch=16,col=alpha(cols.plot[temp$fit.sc],1),cex=0.5)
-legs <- as.character(seq(0,max.div*7/8,length.out = 8))
-legs[8] <- paste('>',max.div*7/8)
+points(lat~long,temp,pch=21,bg='white',col=1,cex=1)
+points(lat~long,temp,pch=16,col=alpha(cols.plot[temp$fit.sc],1),cex=1)
+legs <- as.character(round(seq(0,max.div*7/8,length.out = 8),3))
+legs[8] <- paste('>',round(max.div*7/8,3))
 xseqs <- seq(-15,60,length.out = 8)
 rect(xleft=xseqs,xright=xseqs+(xseqs[2]-xseqs[1]),ybottom = rep(-55,8),ytop = rep(-50,8),col=cols,border=NULL,lwd=0.2)
 segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,-59),lwd=c(0.5,0.3,0.3,0.5,0.3,0.3,0.5))
@@ -77,7 +87,7 @@ gam.check(m1)
 temp$R <- resid(m1)
 temp$rcol <- 4
 temp[temp$R < 0, 'rcol'] <- 2
-plot(map, xlim = c(-180,180), ylim = c(-90,90),border=1,col=NA,axes=F)
+plot(map, xlim = c(-180,180), ylim = c(-90,90),border=NA,col='grey95',axes=F)
 points(lat~long,temp,pch=16,col=alpha(temp$rcol,0.5),cex=0.5+abs(temp$R))
 
 spatdat <- select(temp, long,lat,R)
