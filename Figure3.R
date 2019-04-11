@@ -28,7 +28,7 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
 temp <- DF %>% filter(scale == '1000', taxon == 'birds')
 temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun)
-#temp %<>% filter(nseqs >= 10)
+temp %<>% filter(nseqs >= 5)
 temp %<>% mutate('lat.sq' = scale.fun(lat^2), 'wts' = log(nseqs)/mean(log(nseqs)))
 temp %<>% select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>%
   mutate_at(vars(pop,year,species), as.factor) %>% as.data.frame
@@ -36,36 +36,37 @@ temp %<>% filter(div < mean(div)+10*sd(div))
 
 #smoothed genetic diversity, accounting for D and Yr
 
+#temp <- temp[!duplicated(temp$pop,fromLast = T),]
 
-mod0 <- bam(div ~ s(lat,long, k = 15, m = 1) + s(D, k = 10, bs = 'tp'), data = temp, family = tw, method='fREML', discrete = T)
-p <- str_split(family(mod0)[[1]], '=', simplify = T)[1,2] %>% str_remove('\\)') %>% as.numeric
+pmod <- bam(div ~ s(lat,long, k = 15, m = 1), data = temp, family = tw, method='fREML', discrete = T)
+p <- str_split(family(pmod)[[1]], '=', simplify = T)[1,2] %>% str_remove('\\)') %>% as.numeric
   
 
 # tic()
 # m1 <- bam(div ~ s(lat,long, k = 15, m = 1) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=2) +
-#             s(lat.sq, k = 15, bs = 'tp') + s(hd, k=15, bs ='tp') + s(hd.var, k=10, bs='tp') +
-#             s(p.lu, k=10, bs='tp') + s(lu.div, k=10, bs='tp'),
+#             s(lat.sq, k = 15, bs = 'tp') + s(hd, k=10, bs ='tp') + s(hd.var, k=10, bs='tp') +
+#             s(p.lu, k=10, bs='tp') + s(lu.div, k=10, bs='tp') + s(species, bs='re', k =5, m=1),
 #           data = temp, family = Tweedie(p = p), method='fREML', discrete = T, weights = wts)
 # toc()
 
-tic()
-m1 <- bam(div ~ s(lat,long, k = 15, m = 1) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=2) +
-            s(lat.sq, k = 15, bs = 'tp') + s(hd, k=15, bs ='tp') +
-            s(p.lu, k=10, bs='tp') + s(species, bs='re', k =5, m=2),
-          data = temp, family = Tweedie(p = p), method='fREML', discrete = T, weights = wts)
-toc()
+#full model
 
+m1 <- bam(div ~ s(lat,long, k = 15, m = 1) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=1) +
+            s(lat.sq, k = 15, bs = 'tp') + s(hd, k=10, bs ='tp') +
+            s(p.lu, k=10, bs='tp') + s(species, bs='re', k =5, m=1),
+          data = temp, family = Tweedie(p = p), method='fREML', discrete = T, weights = wts)
 
 summary(m1)
 gam.check(m1)
 
-par(mfrow=c(2,3),cex=1)
+
+par(mfrow=c(2,2),cex=1)
 plot.s(m1,'D',list('lat' = 0, 'long' = 0),1,'mean spatial distance (D)',expression(hat(pi)))
-plot.s(m1,'lat.sq',list('lat' = 0, 'long' = 0),1,expression(Latitude^2),expression(hat(pi)))
+plot.s(m1,'lat.sq',list('lat' = 0, 'long' = 0),1,expression(latitude^2),expression(hat(pi)))
 plot.s(m1,'hd',list('lat' = 0, 'long' = 0),1,expression(human~density~(people~km^-2)),expression(hat(pi)))
-plot.s(m1,'hd.var',list('lat' = 0, 'long' = 0),1,expression(variance~'in'~human~density~(people~km^-2)),expression(hat(pi)))
+#plot.s(m1,'hd.var',list('lat' = 0, 'long' = 0),1,expression(variance~'in'~human~density~(people~km^-2)),expression(hat(pi)))
 plot.s(m1,'p.lu',list('lat' = 0, 'long' = 0),1,expression(land~use~intensity),expression(hat(pi)))
-plot.s(m1,'lu.div',list('lat' = 0, 'long' = 0),1,expression(land~use~heterogeneity),expression(hat(pi)))
+#plot.s(m1,'lu.div',list('lat' = 0, 'long' = 0),1,expression(land~use~heterogeneity),expression(hat(pi)))
 
 
 cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
