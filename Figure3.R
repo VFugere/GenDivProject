@@ -21,18 +21,29 @@ map <- getMap(resolution = "coarse")
 
 #parameters
 min.nb.seqs <- 2
-taxa <- c('birds','fish','insects','mammals')
+#taxa <- c('birds','fish','insects','mammals')
+taxa <- rep('birds',4)
 scales <- c('10','100','1000','10000')
-#colz <- brewer.pal(4, 'Dark2')
-
 colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
 load('~/Desktop/spatialGAMMs.RData')
 names(models) <- paste(c('m0','m1'),'birds',rep(scales, each = 2),sep='_')
 list2env(models,envir=.GlobalEnv)
 
-tax <- taxa[1]
+#### Figure 2 ####
+
 scl <- scales[3]
+
+cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
+colfunc <- colorRampPalette(cols)
+colfunc(1000) -> cols.plot
+
+pdf('~/Desktop/Fig2.pdf',width = 7.5, height = 11, pointsize = 10)
+par(oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1,mfrow=c(4,1))
+
+for(tax in taxa){
+
+mod <- get(paste('m0',tax,scl,sep='_'))
 
 temp <- DF %>% filter(scale == scl, taxon == tax)
 temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
@@ -42,13 +53,41 @@ temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
   mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
   distinct(pop, .keep_all = T)
 
-m1<-m1_birds_10
-m2<-m1_birds_100
-m3<-m1_birds_1000
-m4<-m1_birds_10000
+max.div <- quantile(fitted(mod),0.95)
+temp$fit <- fitted(mod)
+temp$fit[temp$fit > max.div] <- max.div
+temp$fit.sc <- rescale(temp$fit,to=c(0,1000))
 
-pdf('~/Desktop/Fig3.pdf',width=8,height=10,pointsize = 8)
+temp <- temp %>% mutate('long' = (ceiling(long)-ceiling(long)%%2), 'lat' = (ceiling(lat)-ceiling(lat)%%2)) %>% 
+  group_by(long,lat) %>% summarize('fit.sc' = mean(fit.sc,na.rm=T)) %>% arrange(fit.sc)
+
+plot(map, xlim = c(-180,180), ylim = c(-90,90), border=NA,col='grey95',axes=F,asp=1,cex.lab=0.5)
+polygon(x=c(-180,180,180,-180),y=c(-60,-60,-90,-90),col='white',border=NA)
+points(lat~long,temp,pch=21,bg='white',col=1,cex=0.7)
+points(lat~long,temp,pch=16,col=alpha(cols.plot[temp$fit.sc],1),cex=0.8)
+legs <- as.character(round(seq(0,max.div*7/8,length.out = 8),3))
+legs[8] <- paste('>',round(max.div*7/8,3))
+xseqs <- seq(-15,60,length.out = 8)
+rect(xleft=xseqs,xright=xseqs+(xseqs[2]-xseqs[1]),ybottom = rep(-55,8),ytop = rep(-50,8),col=cols,border=NULL,lwd=0.2)
+segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,-59),lwd=c(0.5,0.3,0.3,0.5,0.3,0.3,0.5))
+text(x=xseqs[c(2,5,8)],y=rep(-59,3),labels = legs[c(2,5,8)],pos=1)
+text(x=27.85714,y=-49,cex=1,label=smoothed~COI~hat(pi),pos=3)
+
+}
+
+dev.off()
+
+#### figure 3 ####
+
+pdf('~/Desktop/Fig3.pdf',width=8.5,height=9,pointsize = 8)
 par(mfrow=c(4,4),cex=1)
+
+tax <- taxa[1]
+
+m1<-get(paste('m1',tax,'10',sep='_'))
+m2<-get(paste('m1',tax,'100',sep='_'))
+m3<-get(paste('m1',tax,'1000',sep='_'))
+m4<-get(paste('m1',tax,'10000',sep='_'))
 
 m1sum <- summary(m1)
 m2sum <- summary(m2)
@@ -60,9 +99,9 @@ plot.tbl <- as.data.frame(rbind(round(m1sum$s.table[c(2,4,5,6),3:4],2),
                                 round(m3sum$s.table[c(2,4,5,6),3:4],2),
                                 round(m4sum$s.table[c(2,4,5,6),3:4],2)))
 
-cols <- viridis(20)[5:20]
-colfunc <- colorRampPalette(cols)
-colfunc(1000) -> cols.plot
+# cols <- viridis(20)[5:20]
+# colfunc <- colorRampPalette(cols)
+# colfunc(1000) -> cols.plot
 
 colnames(plot.tbl)[1:2] <- c('Fval','pval')
 plot.tbl$scale <- rep(scales, each=4)
@@ -77,9 +116,6 @@ plot.tbl$ctype <- rep(c('1-D','2-lat','3-hd','4-lu'),4)
 plot.tbl <- arrange(plot.tbl, ctype, scale)
 
 #ylims <-range(c(fitted(m1),fitted(m2),fitted(m3),fitted(m4)))
-
-pdf('~/Desktop/Fig3.pdf',width=8,height=10,pointsize = 8)
-par(mfrow=c(4,4),cex=1)
 
 plot_smooth(m1, view="D", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[1],0.8), rm.ranef=T, se=0, lty=plot.tbl$ln_type[1], lwd=plot.tbl$ln_wdth[1], hide.label = T,xlab='mean spatial distance (D)',ylab=expression(COI~hat(pi)),main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, transform = exp,ylim=c(0.0005,0.005))
 plot_smooth(m2, view="D", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[2],0.8), rm.ranef=T, se=0, lty=plot.tbl$ln_type[2], lwd=plot.tbl$ln_wdth[2], add=T, rug=F, transform = exp)
@@ -104,29 +140,3 @@ plot_smooth(m4, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tb
 
 dev.off()
 
-
-
-cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
-colfunc <- colorRampPalette(cols)
-colfunc(1000) -> cols.plot
-
-max.div <- quantile(fitted(pmod),0.95)
-temp$fit <- fitted(pmod)
-temp$fit[temp$fit > max.div] <- max.div
-temp$fit.sc <- rescale(temp$fit,to=c(0,1000))
-
-temp <- temp %>% mutate('long' = (ceiling(long)-ceiling(long)%%4), 'lat' = (ceiling(lat)-ceiling(lat)%%4)) %>% 
-  group_by(long,lat) %>% summarize('fit.sc' = mean(fit.sc,na.rm=T))
-pdf('~/Desktop/birds_1000.pdf',width = 8, height = 4, pointsize = 8)
-plot(map, xlim = c(-180,180), ylim = c(-90,90), border=NA,col='grey95',axes=F,asp=1,cex.lab=0.5)
-polygon(x=c(-180,180,180,-180),y=c(-60,-60,-90,-90),col='white',border=NA)
-points(lat~long,temp,pch=21,bg='white',col=1,cex=1.4)
-points(lat~long,temp,pch=16,col=alpha(cols.plot[temp$fit.sc],1),cex=1.2)
-legs <- as.character(round(seq(0,max.div*7/8,length.out = 8),3))
-legs[8] <- paste('>',round(max.div*7/8,3))
-xseqs <- seq(-15,60,length.out = 8)
-rect(xleft=xseqs,xright=xseqs+(xseqs[2]-xseqs[1]),ybottom = rep(-55,8),ytop = rep(-50,8),col=cols,border=NULL,lwd=0.2)
-segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,-59),lwd=c(0.5,0.3,0.3,0.5,0.3,0.3,0.5))
-text(x=xseqs[c(2,5,8)],y=rep(-59,3),labels = legs[c(2,5,8)],pos=1)
-text(x=27.85714,y=-49,cex=1,label=smoothed~COI~hat(pi),pos=3)
-dev.off()
