@@ -23,6 +23,8 @@ plot.s <- function(model,xvar,cond,col,xlab,ylab){
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 map <- getMap(resolution = "coarse")
 
+list2env(eqRegions,envir=.GlobalEnv)
+
 #useful parameters for GAMMs
 min.nb.seqs <- 2
 
@@ -33,14 +35,14 @@ min.nb.seqs <- 2
 temp <- DF %>% filter(scale == '1000', taxon == 'birds')
 temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun)
 temp %<>% filter(nseqs >= min.nb.seqs)
-temp %<>% mutate('lat.sq' = scale.fun(lat^2), 'wts' = log(nseqs)/mean(log(nseqs)))
+temp %<>% mutate('lat.abs' = scale.fun(lat^2), 'wts' = log(nseqs)/mean(log(nseqs)))
 temp %<>% select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>%
   mutate_at(vars(pop,year,species), as.factor) %>% as.data.frame
 temp %<>% filter(div < mean(div)+10*sd(div))
 
 par(mfrow=c(2,2),cex=1)
 plot.s(m1,'D',list('lat' = 0, 'long' = 0),1,'mean spatial distance (D)',expression(hat(pi)))
-plot.s(m1,'lat.sq',list('lat' = 0, 'long' = 0),1,expression(latitude^2),expression(hat(pi)))
+plot.s(m1,'lat.abs',list('lat' = 0, 'long' = 0),1,expression(latitude~(absolute)),expression(hat(pi)))
 plot.s(m1,'hd',list('lat' = 0, 'long' = 0),1,expression(human~density~(people~km^-2)),expression(hat(pi)))
 #plot.s(m1,'hd.var',list('lat' = 0, 'long' = 0),1,expression(variance~'in'~human~density~(people~km^-2)),expression(hat(pi)))
 plot.s(m1,'p.lu',list('lat' = 0, 'long' = 0),1,expression(land~use~intensity),expression(hat(pi)))
