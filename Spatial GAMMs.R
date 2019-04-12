@@ -56,6 +56,8 @@ for(scl in scales){
   rm(pmod,fullmod,temp,mods)
   
 }
+
+save(models, file = '~/Desktop/spatialGAMMs.Rdata')
 # summary(m1)
 # gam.check(m1)
 # 
