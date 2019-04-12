@@ -1,6 +1,8 @@
 ## Vincent Fugere 2019
 ## Supp Figure showing GAMM fit for all taxa
 
+colz <- c(1,'#E69F00','#56B4E9','#009E73')
+
 pdf('~/Desktop/FigS1.pdf',width=8,height=10,pointsize = 8,onefile = T)
 
 par(mfrow=c(4,4),cex=1)
