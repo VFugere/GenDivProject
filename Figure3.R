@@ -1,6 +1,6 @@
 ## Vincent Fugere 2019
 
-# Code for Figure 3: spatial GAMM testing land use impacts on gen div
+# Code for Figures 2 & 3: maps and plots of spatial GAMMs
 
 rm(list=ls())
 options(tibble.print_max = 100, scipen = 999)
@@ -14,39 +14,64 @@ library(scales)
 library(rworldmap)
 library(gstat)
 library(sp)
-library(tictoc)
-
-plot.s <- function(model,xvar,cond,col,xlab,ylab){
-  plot_smooth(model, view=xvar, cond=cond, col=col, rm.ranef=T, hide.label = T,xlab=xlab,ylab=ylab,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, transform=exp)
-}
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 map <- getMap(resolution = "coarse")
 
-list2env(eqRegions,envir=.GlobalEnv)
+load('~/Desktop/spatialGAMMs.RData')
+names(models) <- paste(c('m0','m1'),'birds',rep(scales, each = 2),sep='_')
+list2env(models,envir=.GlobalEnv)
 
-#useful parameters for GAMMs
+#parameters
 min.nb.seqs <- 2
+taxa <- c('birds','fish','insects','mammals')
+scales <- c('10','100','1000','10000')
+colz <- brewer.pal(4, 'Dark2')
+
+tax <- taxa[1]
+scl <- scales[3]
+
+temp <- DF %>% filter(scale == scl, taxon == tax)
+temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+  mutate('year' = as.numeric(year))
+temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
+  mutate('year' = ceiling(median(year))) %>%
+  mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
+  distinct(pop, .keep_all = T)
+
+m1<-m1_birds_10
+m2<-m1_birds_100
+m3<-m1_birds_1000
+m4<-m1_birds_10000
+
+pdf('~/Desktop/Fig3.pdf',width=8,height=10,pointsize = 8)
+par(mfrow=c(4,4),cex=1)
+
+#add: if significant, full line, if not, dotted line. Remove polygons (too busy). add auto-scale of y axis merging fitted values of 4 models. add supp figure with polygons, one gam per panel, 16 panels, 4 figures (one per taxon).
+plot_smooth(m1, view="D", cond=list('lat' = 0, 'long' = 0), col=colz[1], rm.ranef=T, hide.label = T,xlab='mean spatial distance (D)',ylab=expression(COI~hat(pi)),main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, transform = exp,ylim=c(0,0.008))
+plot_smooth(m2, view="D", cond=list('lat' = 0, 'long' = 0), col=colz[2], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m3, view="D", cond=list('lat' = 0, 'long' = 0), col=colz[3], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m4, view="D", cond=list('lat' = 0, 'long' = 0), col=colz[4], rm.ranef=T, add=T, rug=F, transform = exp)
+legend('topleft',bty='n',legend=c('scale = 10 km','100 km','1 000 km','10 000 km'),pch=16,col=colz)
+
+plot_smooth(m1, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=colz[1], rm.ranef=T, hide.label = T,xlab=expression(latitude~(absolute)),ylab=expression(COI~hat(pi)),main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, transform = exp,ylim=c(0,0.008))
+plot_smooth(m2, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=colz[2], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m3, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=colz[3], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m4, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=colz[4], rm.ranef=T, add=T, rug=F, transform = exp)
+
+plot_smooth(m1, view="hd", cond=list('lat' = 0, 'long' = 0), col=colz[1], rm.ranef=T, hide.label = T,xlab=expression(human~density~(people~km^-2)),ylab=expression(COI~hat(pi)),main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, transform = exp,ylim=c(0,0.008))
+plot_smooth(m2, view="hd", cond=list('lat' = 0, 'long' = 0), col=colz[2], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m3, view="hd", cond=list('lat' = 0, 'long' = 0), col=colz[3], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m4, view="hd", cond=list('lat' = 0, 'long' = 0), col=colz[4], rm.ranef=T, add=T, rug=F, transform = exp)
+
+plot_smooth(m1, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=colz[1], rm.ranef=T, hide.label = T,xlab=expression(land~use~intensity),ylab=expression(COI~hat(pi)),main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, transform = exp,ylim=c(0,0.008))
+plot_smooth(m2, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=colz[2], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m3, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=colz[3], rm.ranef=T, add=T, rug=F, transform = exp)
+plot_smooth(m4, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=colz[4], rm.ranef=T, add=T, rug=F, transform = exp)
+
+dev.off()
 
 
-
-#start with a single scale
-
-temp <- DF %>% filter(scale == '1000', taxon == 'birds')
-temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun)
-temp %<>% filter(nseqs >= min.nb.seqs)
-temp %<>% mutate('lat.abs' = scale.fun(lat^2), 'wts' = log(nseqs)/mean(log(nseqs)))
-temp %<>% select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>%
-  mutate_at(vars(pop,year,species), as.factor) %>% as.data.frame
-temp %<>% filter(div < mean(div)+10*sd(div))
-
-par(mfrow=c(2,2),cex=1)
-plot.s(m1,'D',list('lat' = 0, 'long' = 0),1,'mean spatial distance (D)',expression(hat(pi)))
-plot.s(m1,'lat.abs',list('lat' = 0, 'long' = 0),1,expression(latitude~(absolute)),expression(hat(pi)))
-plot.s(m1,'hd',list('lat' = 0, 'long' = 0),1,expression(human~density~(people~km^-2)),expression(hat(pi)))
-#plot.s(m1,'hd.var',list('lat' = 0, 'long' = 0),1,expression(variance~'in'~human~density~(people~km^-2)),expression(hat(pi)))
-plot.s(m1,'p.lu',list('lat' = 0, 'long' = 0),1,expression(land~use~intensity),expression(hat(pi)))
-#plot.s(m1,'lu.div',list('lat' = 0, 'long' = 0),1,expression(land~use~heterogeneity),expression(hat(pi)))
 
 cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
 colfunc <- colorRampPalette(cols)
@@ -72,17 +97,3 @@ segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,
 text(x=xseqs[c(2,5,8)],y=rep(-59,3),labels = legs[c(2,5,8)],pos=1)
 text(x=27.85714,y=-49,cex=1,label=smoothed~COI~hat(pi),pos=3)
 dev.off()
-
-#spatial autocorrelation in residuals?
-temp$R <- resid(m1)
-temp$rcol <- 4
-temp[temp$R < 0, 'rcol'] <- 2
-plot(map, xlim = c(-180,180), ylim = c(-90,90),border=NA,col='grey95',axes=F)
-points(lat~long,temp,pch=16,col=alpha(temp$rcol,0.5),cex=0.5+abs(temp$R))
-
-spatdat <- select(temp, long,lat,R)
-coordinates(spatdat) <- c('long','lat')
-variogram(R~long+lat,spatdat,width=0.1,cutoff=50) -> var1
-scatter.smooth(x=var1$dist,y=var1$gamma,xlab='distance',ylab='semivariance',ylim=c(0,max(var1$gamma)),pch=16,col='gray')
-
-
