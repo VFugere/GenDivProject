@@ -51,6 +51,7 @@ for(scl in scales){
   assign(modnames[2],fullmod)
   
   mods <- list(get(modnames[1]),get(modnames[2]))
+  names(mods) <- modnames
   models <- append(models,mods)
   
   rm(pmod,fullmod,temp,mods)
