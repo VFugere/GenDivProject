@@ -17,7 +17,7 @@ taxa <- c('birds','fish','insects','mammals')
 scales <- c('10','100','1000','10000')
 colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
-load('~/Desktop/spatialGAMMs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs.RData')
 list2env(models,envir=.GlobalEnv)
 
 ##
