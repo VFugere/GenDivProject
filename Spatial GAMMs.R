@@ -16,11 +16,8 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 
 #parameters
 min.nb.seqs <- 2
-#taxa <- c('birds','fish','insects','mammals')
+taxa <- c('birds','fish','insects','mammals')
 scales <- c('10','100','1000','10000')
-
-taxa <- 'fish'
-#scales <- '10000'
 
 models <- list()
 
@@ -36,21 +33,27 @@ for(tax in taxa){
       mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
       distinct(pop, .keep_all = T)
     temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun) %>%
-      mutate('lat.abs' = rescale(abs(lat),to=c(0,1)), 'wts' = log(nseqs)/mean(log(nseqs))) %>%
-      select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>%
-      mutate_at(vars(pop,year,species), as.factor) %>% as.data.frame
+      mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
+      mutate_at(vars(pop,year,species), as.factor)
     
-    pmod <- bam(div ~ s(lat,long, bs='gp', k = 50, m = c(1,.5)) + s(D, k = 10, bs = 'tp'), data = temp, family = tw, method='fREML', discrete = T)
-    p <- str_split(family(pmod)[[1]], '=', simplify = T)[1,2] %>% str_remove('\\)') %>% as.numeric
+    mapmod <- bam(div ~ s(lat,long, bs='gp', k = 50, m = c(1,.5)) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=1), data = temp, family = tw, method='fREML', discrete = T)
+    #p <- str_split(family(mapmod)[[1]], '=', simplify = T)[1,2] %>% str_remove('\\)') %>% as.numeric
     
-    fullmod <- bam(div ~ s(lat,long, bs='tp', k = 15) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=1) +
+    #removing duplicate π estimates per species because max number is 1.9 π per species (on average)
+    #and because at largest spatial scale, nb species == nb π values, so including a species
+    #RE is equiavelent to have an observation-level RE (i.e. overfitting)
+    temp <- temp %>% arrange(species,nseqs) %>% distinct(species, .keep_all = T) %>%
+      droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
+      select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
+    
+    fullmod <- bam(div ~ s(lat,long, bs='gp', k = 50) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=1) +
                    s(lat.abs, k = 15, bs = 'tp') + s(hd, k=10, bs ='tp') +
-                   s(p.lu, k=10, bs='tp') + s(species, bs='re', k = 5, m=1),
-                   data = temp, family = Tweedie(p = p), method='fREML', discrete = T, weights = wts)
+                   s(p.lu, k=10, bs='tp'),
+                   data = temp, family = tw, method='fREML', discrete = T, weights = wts)
     
     modnames <- paste(c('m0','m1'),tax,scl,sep='_')
     
-    assign(modnames[1],pmod)
+    assign(modnames[1],mapmod)
     assign(modnames[2],fullmod)
     
     mods <- list(get(modnames[1]),get(modnames[2]))
@@ -64,6 +67,7 @@ for(tax in taxa){
 }
 
 save(models, file = '~/Desktop/spatialGAMMs.Rdata')
+
 # summary(m1)
 # gam.check(m1)
 # 
