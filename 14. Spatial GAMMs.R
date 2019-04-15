@@ -42,7 +42,7 @@ for(tax in taxa){
     #removing duplicate π estimates per species because max number is 1.9 π per species (on average)
     #and because at largest spatial scale, nb species == nb π values, so including a species
     #RE is equiavelent to have an observation-level RE (i.e. overfitting)
-    temp <- temp %>% arrange(species,nseqs) %>% distinct(species, .keep_all = T) %>%
+    temp <- temp %>% arrange(species,desc(nseqs)) %>% distinct(species, .keep_all = T) %>%
       droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
       select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
     
@@ -60,7 +60,7 @@ for(tax in taxa){
     names(mods) <- modnames
     models <- append(models,mods)
     
-    rm(pmod,fullmod,temp,mods)
+    rm(mapmod,fullmod,temp,mods)
     
   }
   
