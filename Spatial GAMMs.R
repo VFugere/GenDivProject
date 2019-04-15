@@ -16,8 +16,11 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 
 #parameters
 min.nb.seqs <- 2
-taxa <- c('birds','fish','insects','mammals')
+#taxa <- c('birds','fish','insects','mammals')
 scales <- c('10','100','1000','10000')
+
+taxa <- 'fish'
+#scales <- '10000'
 
 models <- list()
 
