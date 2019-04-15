@@ -80,7 +80,7 @@ dev.off()
 pdf('~/Desktop/Fig3.pdf',width=7,height=7,pointsize = 8)
 par(mfrow=c(4,4),cex=1,mar=c(2,2,1,1),oma=c(2.5,2.8,0,0))
 
-ymins <- log(c(0.0003,0.0015,0.00025,0.0002))
+ymins <- log(c(0.0003,0.001,0.0001,0.00005))
 ymaxs <- log(c(0.006,0.07,0.03,0.04))
 
 for(i in 1:4){
