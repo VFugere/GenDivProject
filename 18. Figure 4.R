@@ -1,6 +1,6 @@
 ## Vincent Fugere 2019
 
-# Code for Figures 2 & 3: maps and plots of spatial GAMMs
+# Code for Figures 4: time series analysis
 
 rm(list=ls())
 options(tibble.print_max = 100, scipen = 999)
@@ -11,71 +11,47 @@ library(RColorBrewer)
 library(mgcv)
 library(itsadug)
 library(scales)
-library(rworldmap)
-library(gstat)
-library(sp)
 library(viridis)
+library(Kendall)
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
-map <- getMap(resolution = "coarse")
 
 #parameters
 min.nb.seqs <- 2
+min.nb.years <- 3
 taxa <- c('birds','fish','insects','mammals')
-scales <- c('10','100','1000','10000')
+scl <- '1000'
 colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs.RData')
 list2env(models,envir=.GlobalEnv)
 
-#### Figure 2 ####
+#### Getting Mann-Kendall coefficient for each time series
 
-scl <- scales[3]
+MKtau <- function(x){MannKendall(x)$tau}
+MKp <- function(x){MannKendall(x)$sl}
 
-cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
-colfunc <- colorRampPalette(cols)
-colfunc(1000) -> cols.plot
-
-pdf('~/Desktop/Fig2.pdf',width = 7.5, height = 11, pointsize = 10)
-par(oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1,mfrow=c(4,1))
+mk.coefs <- data.frame()
 
 for(tax in taxa){
-
-mod <- get(paste('m0',tax,scl,sep='_'))
-
-temp <- DF %>% filter(scale == scl, taxon == tax)
-temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
-  mutate('year' = as.numeric(year))
-temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
-  mutate('year' = ceiling(median(year))) %>%
-  mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
-  distinct(pop, .keep_all = T)
-
-max.div <- quantile(fitted(mod),0.95)
-temp$fit <- fitted(mod)
-temp$fit[temp$fit > max.div] <- max.div
-temp$fit.sc <- rescale(temp$fit,to=c(0,1000))
-
-temp <- temp %>% mutate('long' = (ceiling(long)-ceiling(long)%%2), 'lat' = (ceiling(lat)-ceiling(lat)%%2)) %>% 
-  group_by(long,lat) %>% summarize('fit.sc' = mean(fit.sc,na.rm=T))
-
-plot(map, xlim = c(-180,180), ylim = c(-90,90), border=NA,col='grey95',axes=F,asp=1,cex.lab=0.5)
-polygon(x=c(-180,180,180,-180),y=c(-60,-60,-90,-90),col='white',border=NA)
-points(lat~long,temp,pch=22,bg='white',col=1,cex=0.7)
-points(lat~long,temp,pch=15,col=alpha(cols.plot[temp$fit.sc],1),cex=0.7)
-legs <- as.character(round(seq(0,max.div*7/8,length.out = 8),3))
-legs[8] <- paste('>',round(max.div*7/8,3))
-xseqs <- seq(-15,60,length.out = 8)
-rect(xleft=xseqs,xright=xseqs+(xseqs[2]-xseqs[1]),ybottom = rep(-55,8),ytop = rep(-50,8),col=cols,border=NULL,lwd=0.2)
-segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,-59),lwd=c(0.5,0.3,0.3,0.5,0.3,0.3,0.5))
-text(x=xseqs[c(2,5,8)],y=rep(-59,3),labels = legs[c(2,5,8)],pos=1)
-text(x=27.85714,y=-52,cex=1,label=smoothed~COI~diversity~(hat(pi)),pos=3)
-
+  
+  temp <- DF %>% filter(scale == scl, taxon == tax) %>%
+    filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div), n.years >= min.nb.years) %>%
+    mutate('year' = as.numeric(year)) %>%
+    arrange(pop,year) %>%
+    group_by(taxon,pop) %>%
+    summarize('yrs' = median(n.years), 'tau' = MKtau(div), 'p' = MKp(div))
+  
+  mk.coefs <- bind_rows(mk.coefs,temp)
+  
 }
 
-dev.off()
+#### Figure 4 ####
 
-#### figure 3 ####
+
+fvisgam(tsmod, view = c('year','hd'), cond = list('lat' = 0, 'long' = 0, 'p.lu' = 0), ylab='human density',add.color.legend=F,hide.label=T,xlab = 'year',transform=exp,plot.type = 'contour', color = viridis(50), main = NULL)
+
+
 
 pdf('~/Desktop/Fig3.pdf',width=7,height=7,pointsize = 8)
 par(mfrow=c(4,4),cex=1,mar=c(2,2,1,1),oma=c(2.5,2.8,0,0))

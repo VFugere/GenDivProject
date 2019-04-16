@@ -44,39 +44,18 @@ for(tax in taxa){
                  ti(year,hd, k = 8) + ti(year,p.lu, k = 8) + s(year,pop, bs = 'fs', k = 5, m = 1),
                data = temp, family = tw, method='fREML', discrete = T, weights = wts)
   
-  summary(tsmod)
-  gam.check(tsmod)
-  library(viridis)
-  vis.gam(tsmod, view = c('year','hd'), cond = list('lat' = 0, 'long' = 0, 'p.lu' = 0), plot.type = 'contour', type = 'response', color = 'bw', main = NULL)
-  fvisgam(tsmod, view = c('year','hd'), cond = list('lat' = 0, 'long' = 0, 'p.lu' = 0), ylab='human density',add.color.legend=F,hide.label=T,xlab = 'year',transform=exp,plot.type = 'contour', color = viridis(50), main = NULL)
+  # summary(tsmod)
+  # gam.check(tsmod)
   
   modname <- paste('m1',tax,scl,sep='_')
   assign(modname,tsmod)
   
-  mods <- list(get(modnames[1]),get(modnames[2]))
-  names(mods) <- modnames
-  models <- append(models,mods)
+  mod <- list(get(modname))
+  names(mod) <- modname
+  models <- append(models,mod)
   
-  rm(pmod,fullmod,temp,mods)
+  rm(tsmod,mod,temp)
   
 }
 
-save(models, file = '~/Desktop/spatialGAMMs.Rdata')
-
-# summary(m1)
-# gam.check(m1)
-# 
-# 
-# #spatial autocorrelation in residuals?
-# temp$R <- resid(m1)
-# temp$rcol <- 4
-# temp[temp$R < 0, 'rcol'] <- 2
-# plot(map, xlim = c(-180,180), ylim = c(-90,90),border=NA,col='grey95',axes=F)
-# points(lat~long,temp,pch=16,col=alpha(temp$rcol,0.5),cex=0.5+abs(temp$R))
-# 
-# spatdat <- select(temp, long,lat,R)
-# coordinates(spatdat) <- c('long','lat')
-# variogram(R~long+lat,spatdat,width=0.1,cutoff=50) -> var1
-# scatter.smooth(x=var1$dist,y=var1$gamma,xlab='distance',ylab='semivariance',ylim=c(0,max(var1$gamma)),pch=16,col='gray')
-
-
+save(models, file = '~/Desktop/temporalGAMMs.Rdata')
