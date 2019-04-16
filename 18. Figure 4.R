@@ -25,6 +25,7 @@ colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs.RData')
 list2env(models,envir=.GlobalEnv)
+rm(models)
 
 #### Getting Mann-Kendall coefficient for each time series
 
@@ -38,8 +39,7 @@ for(tax in taxa){
   temp <- DF %>% filter(scale == scl, taxon == tax) %>%
     filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div), n.years >= min.nb.years) %>%
     mutate('year' = as.numeric(year)) %>%
-    arrange(pop,year) %>%
-    group_by(taxon,pop) %>%
+    group_by(pop) %>%
     summarize('yrs' = median(n.years), 'tau' = MKtau(div), 'p' = MKp(div))
   
   mk.coefs <- bind_rows(mk.coefs,temp)
@@ -48,8 +48,15 @@ for(tax in taxa){
 
 #### Figure 4 ####
 
+tsmod <- m1_fish_1000
+fvisgam(tsmod, view = c('year','p.lu'), cond = list('hd' = 0), ylab='human density',add.color.legend=F,hide.label=T,xlab = 'year',plot.type = 'contour', color = viridis(50), main = NULL)
+plot_smooth(tsmod, view="year", cond=list('hd' = 0,'p.lu'= 0), col=1, rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+plot_smooth(tsmod, view="year", cond=list('hd' = 0,'p.lu' = 1), col=2, add=T,rm.ranef=T, se=1.96,rug=F)
+plot_smooth(tsmod, view="year", cond=list('hd' = 1,'p.lu' = 0), col=3, add=T,rm.ranef=T, se=1.96,rug=F)
+plot_smooth(tsmod, view="year", cond=list('hd' = 1,'p.lu' = 1), col=3, add=T,rm.ranef=T, se=1.96,rug=F)
 
-fvisgam(tsmod, view = c('year','hd'), cond = list('lat' = 0, 'long' = 0, 'p.lu' = 0), ylab='human density',add.color.legend=F,hide.label=T,xlab = 'year',transform=exp,plot.type = 'contour', color = viridis(50), main = NULL)
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
 
 
 
