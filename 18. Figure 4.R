@@ -18,12 +18,11 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 
 #parameters
 min.nb.seqs <- 2
-min.nb.years <- 3
+min.nb.years <- 4
 taxa <- c('birds','fish','insects','mammals')
 scl <- '1000'
-colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs_4seqs.RData')
 list2env(models,envir=.GlobalEnv)
 rm(models)
 
@@ -42,102 +41,92 @@ for(tax in taxa){
     group_by(pop) %>%
     summarize('yrs' = median(n.years), 'tau' = MKtau(div), 'p' = MKp(div))
   
+  temp$taxon <- tax
   mk.coefs <- bind_rows(mk.coefs,temp)
+  rm(temp)
   
 }
 
 #### Figure 4 ####
 
-tsmod <- m1_fish_1000
-fvisgam(tsmod, view = c('year','p.lu'), cond = list('hd' = 0), ylab='human density',add.color.legend=F,hide.label=T,xlab = 'year',plot.type = 'contour', color = viridis(50), main = NULL)
-plot_smooth(tsmod, view="year", cond=list('hd' = 0,'p.lu'= 0), col=1, rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
-plot_smooth(tsmod, view="year", cond=list('hd' = 0,'p.lu' = 1), col=2, add=T,rm.ranef=T, se=1.96,rug=F)
-plot_smooth(tsmod, view="year", cond=list('hd' = 1,'p.lu' = 0), col=3, add=T,rm.ranef=T, se=1.96,rug=F)
-plot_smooth(tsmod, view="year", cond=list('hd' = 1,'p.lu' = 1), col=3, add=T,rm.ranef=T, se=1.96,rug=F)
+ylims_all <- rbind(c(-9,-3),c(-9,-3),c(-9,-2),c(-7,-2.5))
+viridis(100)[1] -> col_ln
 
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
-
-
-
-pdf('~/Desktop/Fig3.pdf',width=7,height=7,pointsize = 8)
-par(mfrow=c(4,4),cex=1,mar=c(2,2,1,1),oma=c(2.5,2.8,0,0))
-
-ymins <- log(c(0.0003,0.001,0.0001,0.00005))
-ymaxs <- log(c(0.006,0.07,0.03,0.04))
+pdf('~/Desktop/Fig4.pdf',width=8.5,height=8.5,pointsize = 8)
+par(mfrow=c(4,4),cex=1,mar=c(4,4,2,2),oma=c(1,1,1,1))
 
 for(i in 1:4){
-
-tax <- taxa[i]
-ylims <- c(ymins[i],ymaxs[i])
   
-m1<-get(paste('m1',tax,'10',sep='_'))
-m2<-get(paste('m1',tax,'100',sep='_'))
-m3<-get(paste('m1',tax,'1000',sep='_'))
-m4<-get(paste('m1',tax,'10000',sep='_'))
-
-m1sum <- summary(m1)
-m2sum <- summary(m2)
-m3sum <- summary(m3)
-m4sum <- summary(m4)
-
-plot.tbl <- as.data.frame(rbind(round(m1sum$s.table[c(2,4,5,6),3:4],2),
-                                round(m2sum$s.table[c(2,4,5,6),3:4],2),
-                                round(m3sum$s.table[c(2,4,5,6),3:4],2),
-                                round(m4sum$s.table[c(2,4,5,6),3:4],2)))
-
-# cols <- viridis(20)[5:20]
-# colfunc <- colorRampPalette(cols)
-# colfunc(1000) -> cols.plot
-
-colnames(plot.tbl)[1:2] <- c('Fval','pval')
-plot.tbl$scale <- rep(scales, each=4)
-plot.tbl$ln_wdth <-rescale(plot.tbl$Fval, to = c(1.5,4.5))
-#plot.tbl$ln_wdth <- rep(c(0.6,1.2,1.8,2.4), each=4)
-#plot.tbl$ln_col <- cols.plot[rescale(plot.tbl$Fval, to = c(1,1000))]
-plot.tbl$ln_col <- rep(colz,each=4)
-plot.tbl$ln_type <- 1
-plot.tbl$ln_type[plot.tbl$pval > 0.01] <- 3
-#plot.tbl$ln_col[plot.tbl$pval > 0.05] <- 'grey90'
-plot.tbl$ctype <- rep(c('1-D','2-lat','3-hd','4-lu'),4)
-plot.tbl <- arrange(plot.tbl, ctype, scale)
-
-plot_smooth(m1, view="D", xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[1],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[1], lwd=plot.tbl$ln_wdth[1], yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim=ylims)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-plot_smooth(m2, view="D", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[2],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[2], lwd=plot.tbl$ln_wdth[2], add=T, rug=F)
-plot_smooth(m3, view="D", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[3],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[3], lwd=plot.tbl$ln_wdth[3], add=T, rug=F)
-plot_smooth(m4, view="D", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[4],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[4], lwd=plot.tbl$ln_wdth[4], add=T, rug=F)
-if(i == 1){legend('bottomleft',bty='n',legend=c('10 km','100 km','1 000 km','10 000 km'),pch=16,col=colz,cex=1.1)}
-if(i == 4){mtext('mean spatial distance',side=1,outer=F,cex=1.2,adj=0.5,line=3)}
-
-plot_smooth(m1, view="lat.abs", xlim=c(0,1), cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[5],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[5], lwd=plot.tbl$ln_wdth[5], yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim=ylims)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-plot_smooth(m2, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[6],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[6], lwd=plot.tbl$ln_wdth[6], add=T, rug=F)
-plot_smooth(m3, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[7],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[7], lwd=plot.tbl$ln_wdth[7], add=T, rug=F)
-plot_smooth(m4, view="lat.abs", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[8],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[8], lwd=plot.tbl$ln_wdth[8], add=T, rug=F)
-if(i == 4){mtext('absolute latitude',side=1,outer=F,cex=1.2,adj=0.5,line=3)}
-
-plot_smooth(m1, view="hd", xlim=c(0,1), cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[9],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[9], lwd=plot.tbl$ln_wdth[9], yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim=ylims)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-plot_smooth(m2, view="hd", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[10],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[10], lwd=plot.tbl$ln_wdth[10], add=T, rug=F)
-plot_smooth(m3, view="hd", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[11],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[11], lwd=plot.tbl$ln_wdth[11], add=T, rug=F)
-plot_smooth(m4, view="hd", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[12],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[12], lwd=plot.tbl$ln_wdth[12], add=T, rug=F)
-if(i == 4){mtext('human density',side=1,outer=F,cex=1.2,adj=0.5,line=3)}
-
-plot_smooth(m1, view="p.lu", xlim=c(0,1), cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[13],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[13], lwd=plot.tbl$ln_wdth[13], yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim=ylims)
-axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
-axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-plot_smooth(m2, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[14],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[14], lwd=plot.tbl$ln_wdth[14], add=T, rug=F)
-plot_smooth(m3, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[15],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[15], lwd=plot.tbl$ln_wdth[15], add=T, rug=F)
-plot_smooth(m4, view="p.lu", cond=list('lat' = 0, 'long' = 0), col=alpha(plot.tbl$ln_col[16],0.8), rm.ranef=F, se=0, lty=plot.tbl$ln_type[16], lwd=plot.tbl$ln_wdth[16], add=T, rug=F)
-if(i == 4){mtext('land use intensity',side=1,outer=F,cex=1.2,adj=0.5,line=3)}
-
+  tax <- taxa[i]
+  
+  # MK plot
+  
+  dat <- filter(mk.coefs, taxon == tax)
+  dat$pt.sig <- cut(dat$p, breaks=c(0,0.05,1),labels = 2:1)
+  dat$pt.sig <- as.numeric(dat$pt.sig)
+  dat$pt.col <- c(col_ln,'black')[dat$pt.sig]
+  dat$pt.alph <- c(0.8,0.1)[dat$pt.sig]
+  
+  emptyPlot(xlim = c(-1,1),yaxt='n',xaxt='n',ann=F, ylim=range(dat$yrs)+c(-0.5,0.5),bty='l')
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(4,17,1))
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-1,1,0.5),labels = c('-1','','0','','1'))
+  title(xlab=expression('Mann-Kendall'~tau))
+  title(ylab='number of years')
+  abline(v=0,lty=2)
+  points(jitter(yrs)~tau,dat,pch=16,col=alpha(pt.col,pt.alph))
+  if(tax == 'birds'){legend('topright',inset=c(-0.1,-0.18),bg='white',bty='o',box.col='white',ncol = 1,xpd=NA,pch=21,col=1,pt.bg=c('grey95',col_ln),legend = c('p > 0.05','p < 0.05'))}
+  
+  # GAMM fit
+  
+  ylims <- ylims_all[i,]
+  tsmod<-get(paste('m1',tax,'1000',sep='_'))
+  
+  modsum <- summary(tsmod)
+  testres <- modsum$s.table[c('s(year)','ti(year,hd)','ti(year,p.lu)'),c('F','p-value')]
+  testres[,1] <- round(testres[,1],2)
+  testres[,2] <- round(testres[,2],4)
+  testres[testres[,2] == 0,2] <- 0.0001
+  rsq <- round(modsum$r.sq,2)
+  
+  emptyPlot(xlim = range(tsmod$model$year),yaxt='n',xaxt='n',ann=F, ylim=ylims,bty='l')
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-9,-2,1))
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+  title(xlab='year')
+  title(ylab=expression(log[e]~COI~diversity~(hat(pi))),line=2.8)
+  ifelse(tax == 'insects', assign('ln.alpha',0.05), assign('ln.alpha',0.2))
+  for(focalpop in levels(tsmod$model$pop)){
+    popdat <- tsmod$model %>% filter(pop == focalpop)
+    xs <- seq(min(popdat$year),max(popdat$year),by=1)
+    conditions <- list(lat=median(tsmod$model$lat),
+                       long=median(tsmod$model$long),
+                       D=median(tsmod$model$D),
+                       hd=median(tsmod$model$hd),
+                       p.lu=median(tsmod$model$p.lu),
+                       year=xs,
+                       pop=focalpop)
+    
+    ys <- get_predictions(tsmod, cond = conditions, se=F, print.summary = F) 
+    points(fit~year,ys,col=alpha(1,ln.alpha),type='l')
+  }
+  plot_smooth(tsmod, view="year", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
+  mtext(text=bquote(italic('F') == .(testres[1,1])~','~italic('p') == .(testres[1,2])),side=3,adj=0.5)
+  legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
+  
+  # contour plots
+  
+  newD <- expand.grid(lat=median(tsmod$model$lat),long=median(tsmod$model$long),D=median(tsmod$model$D),
+                      year=seq(min(tsmod$model$year),max(tsmod$model$year),length.out = 30),
+                      hd=seq(0,1,length.out = 30), p.lu=seq(0,1,length.out = 30), pop=tsmod$model$pop[1])
+  newD$fit <- predict(tsmod,newD,exclude = 's(year,pop)', discrete=F)
+  zlims <- range(newD$fit)
+  rm(newD)
+  
+  fvisgam(tsmod, view = c('year','hd'), cond = list('p.lu' = 0), zlim=zlims,ylab='human density', add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
+  mtext(text=bquote(italic('F') == .(testres[2,1])~','~italic('p') == .(testres[2,2])),side=3,adj=0.5)
+  
+  fvisgam(tsmod, view = c('year','p.lu'), cond = list('hd' = 0), zlim=zlims,ylab='land use',add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,nCol=100,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
+  mtext(text=bquote(italic('F') == .(testres[3,1])~','~italic('p') == .(testres[3,2])),side=3,adj=0.5)
+  
 }
 
-mtext(expression(log[e]~COI~diversity~(hat(pi))),at=.5,side=2,outer=T,cex=1.2,line=1)
-
 dev.off()
-
