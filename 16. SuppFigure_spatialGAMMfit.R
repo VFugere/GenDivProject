@@ -39,6 +39,38 @@ for(i in 1:4){
   m3<-get(paste('m1',tax,'1000',sep='_'))
   m4<-get(paste('m1',tax,'10000',sep='_'))
   
+  m1sum <- summary(m1)
+  m2sum <- summary(m2)
+  m3sum <- summary(m3)
+  m4sum <- summary(m4)
+  
+  m1res <- m1sum$s.table[c('s(D)','s(lat.abs)','s(hd)','s(p.lu)'),c('F','p-value')]
+  m1res[,1] <- round(m1res[,1],2)
+  m1res[,2] <- round(m1res[,2],4)
+  m1res[m1res[,2] == 0,2] <- 0.0001
+  m1rsq <- round(m1sum$r.sq,2)
+  
+  m2res <- m2sum$s.table[c('s(D)','s(lat.abs)','s(hd)','s(p.lu)'),c('F','p-value')]
+  m2res[,1] <- round(m2res[,1],2)
+  m2res[,2] <- round(m2res[,2],4)
+  m2res[m2res[,2] == 0,2] <- 0.0001
+  m2rsq <- round(m2sum$r.sq,2)
+  
+  m3res <- m3sum$s.table[c('s(D)','s(lat.abs)','s(hd)','s(p.lu)'),c('F','p-value')]
+  m3res[,1] <- round(m3res[,1],2)
+  m3res[,2] <- round(m3res[,2],4)
+  m3res[m3res[,2] == 0,2] <- 0.0001
+  m3rsq <- round(m3sum$r.sq,2)
+  
+  m4res <- m4sum$s.table[c('s(D)','s(lat.abs)','s(hd)','s(p.lu)'),c('F','p-value')]
+  m4res[,1] <- round(m4res[,1],2)
+  m4res[,2] <- round(m4res[,2],4)
+  m4res[m4res[,2] == 0,2] <- 0.0001
+  m4rsq <- round(m4sum$r.sq,2)
+  
+  mtext(text=bquote(italic('F') == .(res[1,1])~','~italic('p') == .(res[1,2])),side=3,adj=0.5)
+  legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
+  
   # D
   
   plot_smooth(m1, view="D", col=colz[1], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
