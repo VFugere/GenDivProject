@@ -20,12 +20,20 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 map <- getMap(resolution = "coarse")
 
 #parameters
-min.nb.seqs <- 2
+min.nb.seqs <- 5
 taxa <- c('birds','fish','insects','mammals')
 scales <- c('10','100','1000','10000')
 colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs.RData')
+# #2seqs
+# ymins <- log(c(0.0003,0.001,0.0001,0.00005))
+# ymaxs <- log(c(0.006,0.07,0.03,0.04))
+
+#5seqs
+ymins <- c(-6.5,-8,-6.5,-9)
+ymaxs <- c(-4,-4,-3.5,-3)
+
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs_5seqs.RData')
 list2env(models,envir=.GlobalEnv)
 
 #### Figure 2 ####
@@ -79,9 +87,6 @@ dev.off()
 
 pdf('~/Desktop/Fig3.pdf',width=7,height=7,pointsize = 8)
 par(mfrow=c(4,4),cex=1,mar=c(2,2,1,1),oma=c(2.5,2.8,0,0))
-
-ymins <- log(c(0.0003,0.001,0.0001,0.00005))
-ymaxs <- log(c(0.006,0.07,0.03,0.04))
 
 for(i in 1:4){
 
