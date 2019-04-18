@@ -17,7 +17,7 @@ taxa <- c('birds','fish','insects','mammals')
 scales <- c('10','100','1000','10000')
 colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs_5seqs.RData')
 list2env(models,envir=.GlobalEnv)
 
 ##
@@ -26,8 +26,13 @@ pdf('~/Desktop/SuppFig_spatialGAMMs.pdf',width=7,height=7,pointsize = 8,onefile 
 layout(rbind(c(1,5,9,13),c(2,6,10,14),c(3,7,11,15),c(4,8,12,16)))
 par(cex=1,mar=c(2,2,1,1),oma=c(2.5,2.8,0,0))
 
-ymins <- c(-9,-9,-10,-10)
-ymaxs <-c(-4,-2,-2,-2)
+# #2seqs
+# ymins <- c(-9,-9,-10,-10)
+# ymaxs <-c(-4,-2,-2,-2)
+
+#5seqs
+ymins <- c(-8,-10,-10,-10)
+ymaxs <- c(-2,-2,-2,-2)
 
 for(i in 1:4){
   
