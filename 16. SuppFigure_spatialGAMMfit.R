@@ -68,30 +68,32 @@ for(i in 1:4){
   m4res[m4res[,2] == 0,2] <- 0.0001
   m4rsq <- round(m4sum$r.sq,2)
   
-  mtext(text=bquote(italic('F') == .(res[1,1])~','~italic('p') == .(res[1,2])),side=3,adj=0.5)
-  legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
   
   # D
   
   plot_smooth(m1, view="D", col=colz[1], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-  legend('topleft',bty='n',legend = 'scale = 10 km', col = colz[1])
+  legend('bottomleft',bty='n',legend = c(as.expression('scale = 10 km'),as.expression(bquote('model'~italic(R)^2 == .(m1rsq)))))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m1res[1,1])~','~italic('p') == .(m1res[1,2])))
   
   plot_smooth(m2, view="D", col=colz[2], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-  legend('topleft',bty='n',legend = 'scale = 100 km', col = colz[2])
+  legend('bottomleft',bty='n',legend = c(as.expression('scale = 100 km'),as.expression(bquote('model'~italic(R)^2 == .(m2rsq)))))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m2res[1,1])~','~italic('p') == .(m2res[1,2])))
   
   plot_smooth(m3, view="D", col=colz[3], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-  legend('topleft',bty='n',legend = 'scale = 1 000 km', col = colz[3])
+  legend('bottomleft',bty='n',legend = c(as.expression('scale = 1 000 km'),as.expression(bquote('model'~italic(R)^2 == .(m3rsq)))))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m3res[1,1])~','~italic('p') == .(m3res[1,2])))
   
   plot_smooth(m4, view="D", col=colz[4], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
-  legend('topleft',bty='n',legend = 'scale = 10 000 km', col = colz[4])
+  legend('bottomleft',bty='n',legend = c(as.expression('scale = 10 000 km'),as.expression(bquote('model'~italic(R)^2 == .(m4rsq)))))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m4res[1,1])~','~italic('p') == .(m4res[1,2])))
   
   mtext('mean spatial distance',side=1,outer=F,cex=1.2,adj=0.5,line=3)
   
@@ -100,18 +102,22 @@ for(i in 1:4){
   plot_smooth(m1, view="lat.abs", col=colz[1], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m1res[2,1])~','~italic('p') == .(m1res[2,2])))
   
   plot_smooth(m2, view="lat.abs", col=colz[2], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m2res[2,1])~','~italic('p') == .(m2res[2,2])))
   
   plot_smooth(m3, view="lat.abs", col=colz[3], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m3res[2,1])~','~italic('p') == .(m3res[2,2])))
   
   plot_smooth(m4, view="lat.abs", col=colz[4], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m4res[2,1])~','~italic('p') == .(m4res[2,2])))
   
   mtext('absolute latitude',side=1,outer=F,cex=1.2,adj=0.5,line=3)
   
@@ -120,18 +126,22 @@ for(i in 1:4){
   plot_smooth(m1, view="hd", col=colz[1], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m1res[3,1])~','~italic('p') == .(m1res[3,2])))
   
   plot_smooth(m2, view="hd", col=colz[2], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m2res[3,1])~','~italic('p') == .(m2res[3,2])))
   
   plot_smooth(m3, view="hd", col=colz[3], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m3res[3,1])~','~italic('p') == .(m3res[3,2])))
   
   plot_smooth(m4, view="hd", col=colz[4], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m4res[3,1])~','~italic('p') == .(m4res[3,2])))
   
   mtext('human density',side=1,outer=F,cex=1.2,adj=0.5,line=3)
   
@@ -140,18 +150,22 @@ for(i in 1:4){
   plot_smooth(m1, view="p.lu", col=colz[1], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m1res[4,1])~','~italic('p') == .(m1res[4,2])))
   
   plot_smooth(m2, view="p.lu", col=colz[2], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m2res[4,1])~','~italic('p') == .(m2res[4,2])))
   
   plot_smooth(m3, view="p.lu", col=colz[3], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m3res[4,1])~','~italic('p') == .(m3res[4,2])))
   
   plot_smooth(m4, view="p.lu", col=colz[4], xlim=c(0,1),cond=list('lat' = 0, 'long' = 0), rm.ranef=F, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA, ylim = ylims)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels = c('0','0.25','0.5','0.75','1'))
+  legend('topright',bty='n',legend=bquote(italic('F') == .(m4res[4,1])~','~italic('p') == .(m4res[4,2])))
   
   mtext('land use intensity',side=1,outer=F,cex=1.2,adj=0.5,line=3)
 
