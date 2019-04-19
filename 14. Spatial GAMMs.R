@@ -15,7 +15,7 @@ scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 
 #parameters
-min.nb.seqs <- 5
+min.nb.seqs <- 2
 taxa <- c('birds','fish','insects','mammals')
 scales <- c('10','100','1000','10000')
 
