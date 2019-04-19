@@ -11,6 +11,7 @@ library(mgcv)
 library(itsadug)
 library(tictoc)
 library(scales)
+library(rlang)
 scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
@@ -21,6 +22,30 @@ min.nb.years <- 4
 taxa <- c('birds','fish','insects','mammals')
 #scales <- c('10','100','1000','10000')
 scl <- '1000'
+
+# #how many time series of each taxa at each scale?
+# table <- data.frame()
+# for(y in 3:10){
+#   for(ns in 2:10){
+#     var_name <- paste0('yrs',quo_name(y),'_seqs',quo_name(ns))
+#     t1 <- DF %>% filter(nseqs >= ns, div < mean(div)+10*sd(div), n.years >= y) %>% 
+#       group_by(taxon,scale) %>% summarize(!! var_name := n_distinct(pop))
+#     if(y == 3 & ns == 2){
+#       table <- t1}else{
+#         table <- left_join(table,t1, by = c('taxon','scale'))
+#       }
+#   }
+# }
+# table[is.na(table)] <- 0
+# writexl::write_xlsx(table, '~/Desktop/table.xlsx')
+
+#Notes on data exploration using various treshold number of years and min number of sequences
+#-goal is to have at least 20 time series per taxon
+#-for birds, 4 yrs & 4 seqs @ 1000K scale is the most stringent criterion that has 20+ series
+#-both fish and birds have < 20 4yr series at 10, 100 scales
+#-tested small-scale effect (@100km scl) for mamms + insects and no significant human impacts when seqs = 5 & yrs = 5
+#-so minimum scale is 1000K. most stringent criteria we can use at that scale 
+#is 4yrs 2seqs. If I increase min seq or min yrs, model does not fit for birds.
 
 models <- list()
 
