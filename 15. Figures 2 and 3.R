@@ -33,7 +33,7 @@ ymaxs <- log(c(0.006,0.07,0.03,0.04))
 # ymins <- c(-6.5,-8,-6.5,-9)
 # ymaxs <- c(-4,-4,-3.5,-3)
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs_5seqs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs_2seqs.RData')
 list2env(models,envir=.GlobalEnv)
 
 #### Figure 2 ####
@@ -59,8 +59,10 @@ temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
   mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
   distinct(pop, .keep_all = T)
 
-max.div <- quantile(fitted(mod),0.95)
-temp$fit <- fitted(mod)
+#temp$fit <- fitted(mod)
+newD <- list('lat' = temp$lat, 'long' = temp$long, 'D' = rep(0,nrow(temp)), 'year' = temp$year)
+temp$fit <- predict(mod,newD,type='response',se.fit = F)
+max.div <- quantile(temp$fit,0.95)
 temp$fit[temp$fit > max.div] <- max.div
 temp$fit.sc <- rescale(temp$fit,to=c(0,1000))
 
