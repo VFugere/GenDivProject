@@ -7,9 +7,9 @@ rm(list=ls())
 library(tidyverse)
 library(vegan)
 
-load('~/Desktop/Data/DF_D.Rdata')
-load('~/Desktop/Data/DF_Pi.Rdata')
-load('~/Desktop/Data/sequence_metadata.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_D.Rdata')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Pi.Rdata')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/sequence_metadata.RData')
 
 DF_Pi <- select(DF_Pi, -(taxon:species))
 DF_Pi$year <- as.numeric(DF_Pi$year)
