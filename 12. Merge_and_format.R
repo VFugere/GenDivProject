@@ -30,6 +30,23 @@ alldata %>% filter(n.years >= 3) %>%
 #plenty! and number of species ~ number of pops even at smallest scales, indicating
 #that we are not simply cutting pops into small units
 
+#average great circle distance within species, for figure S1
+dd <- DF_D %>% filter(scale == '1e+05') %>% group_by(species) %>% summarize('D' = mean(D,na.rm=T))
+#pdf('~/Desktop/S1.pdf',width=4.5,height=3.5,pointsize = 10)
+hist(dd$D, breaks=100, xlab = 'mean Great Circle distance among sequences (km)',
+     ylab='species',col='grey50',border=0,main=NULL)
+#dev.off()
+rm(dd)
+
+#how many sequences per pi hat?
+#pdf('~/Desktop/S6.pdf',width=4.5,height=3.5,pointsize = 10)
+hist(log10(DF_Pi$nseqs), breaks=100, xlab=number~of~sequences~compared,
+     ylab=expression(number~of~hat(pi)~estimates),col='grey50',border=0,main=NULL,axes=F)
+box(bty='l')
+axis(1,lwd=0,lwd.tick=1,at=log10(c(2,5,10,50,100,1000)),labels = c(2,5,10,50,100,1000))
+axis(2,lwd=0,lwd.tick=1)
+#dev.off()
+
 #get spatial centroids of pops
 sc10 <- seq %>% group_by(pop10) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop10)
 sc100 <- seq %>% group_by(pop100) %>% summarize('nseqs' = n(),'lat' = mean(lat), 'long' = mean(long)) %>% rename('pop' = pop100)
