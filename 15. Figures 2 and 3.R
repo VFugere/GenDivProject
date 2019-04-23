@@ -40,9 +40,14 @@ list2env(models,envir=.GlobalEnv)
 
 scl <- scales[3]
 
-cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
-colfunc <- colorRampPalette(cols)
-colfunc(1000) -> cols.plot
+# #temperature colour scheme
+# cols <- rev(c('#d73027','#f46d43','#fdae61','#fee090','#e0f3f8','#abd9e9','#74add1','#4575b4'))
+# colfunc <- colorRampPalette(cols)
+# colfunc(1000) -> cols.plot
+
+#viridis colour scheme
+cols.plot <- viridis(1000)
+cols <- viridis(8)
 
 pdf('~/Desktop/Fig2.pdf',width = 7.5, height = 11, pointsize = 10)
 par(oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1,mfrow=c(4,1))
