@@ -24,7 +24,7 @@ alldata %>% group_by(scale) %>% summarize(pops = n_distinct(pop))
 alldata <- alldata %>% group_by(pop) %>% add_tally(name = 'n.years')
 
 #how many time series?
-alldata %>% filter(n.years >= 3) %>%
+alldata %>% filter(n.years >= 4) %>%
   group_by(scale, taxon) %>%
   summarize('pops' = n_distinct(pop), 'species' = n_distinct(species))
 #plenty! and number of species ~ number of pops even at smallest scales, indicating
