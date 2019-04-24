@@ -46,8 +46,8 @@ scl <- scales[3]
 # colfunc(1000) -> cols.plot
 
 #viridis colour scheme
-cols.plot <- viridis(1000)
-cols <- viridis(8)
+cols.plot <- viridis(100)
+#cols <- viridis(16)
 
 pdf('~/Desktop/Fig2.pdf',width = 7.5, height = 11, pointsize = 10)
 par(oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1,mfrow=c(4,1))
@@ -67,24 +67,26 @@ temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
 #temp$fit <- fitted(mod)
 newD <- list('lat' = temp$lat, 'long' = temp$long, 'D' = rep(0,nrow(temp)), 'year' = temp$year)
 temp$fit <- predict(mod,newD,type='response',se.fit = F)
-max.div <- quantile(temp$fit,0.95)
+max.div <- quantile(temp$fit,0.92)
 temp$fit[temp$fit > max.div] <- max.div
-temp$fit.sc <- rescale(temp$fit,to=c(0,1000))
+temp$fit.sc <- rescale(temp$fit,to=c(0,100))
 
 temp <- temp %>% mutate('long' = (ceiling(long)-ceiling(long)%%2), 'lat' = (ceiling(lat)-ceiling(lat)%%2)) %>% 
   group_by(long,lat) %>% summarize('fit.sc' = mean(fit.sc,na.rm=T))
 
 plot(map, xlim = c(-180,180), ylim = c(-90,90), border=NA,col='grey95',axes=F,asp=1,cex.lab=0.5)
-polygon(x=c(-180,180,180,-180),y=c(-60,-60,-90,-90),col='white',border=NA)
+#polygon(x=c(-180,180,180,-180),y=c(-60,-60,-90,-90),col='white',border=NA)
 points(lat~long,temp,pch=22,bg='white',col=1,cex=0.7)
 points(lat~long,temp,pch=15,col=alpha(cols.plot[temp$fit.sc],1),cex=0.7)
 legs <- as.character(round(seq(0,max.div*7/8,length.out = 8),3))
 legs[8] <- paste('>',round(max.div*7/8,3))
-xseqs <- seq(-15,60,length.out = 8)
-rect(xleft=xseqs,xright=xseqs+(xseqs[2]-xseqs[1]),ybottom = rep(-55,8),ytop = rep(-50,8),col=cols,border=NULL,lwd=0.2)
-segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,-59),lwd=c(0.5,0.3,0.3,0.5,0.3,0.3,0.5))
-text(x=xseqs[c(2,5,8)],y=rep(-59,3),labels = legs[c(2,5,8)],pos=1)
-text(x=27.85714,y=-52,cex=1,label=smoothed~COI~diversity~(hat(pi)),pos=3)
+xseqs <- seq(-15,60,length.out = 100)
+points(rep(-55,100)~xseqs, col=cols.plot, pch=16)
+#rect(xleft=xseqs,xright=xseqs+(xseqs[2]-xseqs[1]),ybottom = rep(-55,16),ytop = rep(-50,16),col=cols,border=NULL,lwd=0)
+#segments(x0=xseqs[2:8],x1=xseqs[2:8],y0=rep(-50,7),y1=c(-59,-57,-57,-59,-57,-57,-59),lwd=c(0.5,0.3,0.3,0.5,0.3,0.3,0.5))
+#text(x=xseqs[c(2,5,8)],y=rep(-59,3),labels = legs[c(2,5,8)],pos=1)
+text(x=xseqs[c(1,100)],y=rep(-58,2),labels = legs[c(1,8)],pos=1)
+text(x=22.5,y=-54,cex=1,label=smoothed~COI~diversity~(hat(pi)),pos=3)
 
 }
 
