@@ -22,7 +22,7 @@ min.nb.years <- 4
 taxa <- c('birds','fish','insects','mammals')
 scl <- '1000'
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs_4seqs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs_4yrs_2seqs.RData')
 list2env(models,envir=.GlobalEnv)
 rm(models)
 
