@@ -14,6 +14,14 @@ scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 
+#adding family + order
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/sequence_metadata.RData')
+taxonomy <- seq %>% select(species,family,order) %>% distinct(species, .keep_all = T)
+rm(seq)
+taxonomy$species <- str_replace(taxonomy$species, ' ', '_')
+DF <- left_join(DF,taxonomy, by = 'species')
+DF <- select(DF, taxon,scale,pop:species,family,order,div:lu.div)
+
 #parameters
 min.nb.seqs <- 2
 taxa <- c('birds','fish','insects','mammals')
@@ -44,11 +52,12 @@ for(tax in taxa){
     #RE is equivalent to have an observation-level RE (i.e. overfitting)
     temp <- temp %>% arrange(species,desc(nseqs)) %>% distinct(species, .keep_all = T) %>%
       droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
-      select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
+      select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% 
+      mutate_at(vars(family:order),list(~as.factor)) %>% as.data.frame
     
     fullmod <- bam(div ~ s(lat,long, bs='gp', k = 50) + s(D, k = 8, bs = 'tp') + s(year,bs = 're', k = 5, m=1) +
                    s(lat.abs, k = 8, bs = 'tp') + s(hd, k=8, bs ='tp') +
-                   s(p.lu, k=8, bs='tp'),
+                   s(p.lu, k=8, bs='tp') + s(order, bs='re',k = 5, m=1) + s(family, bs='re',k = 5, m=1),
                    data = temp, family = tw, method='fREML', discrete = T, weights = wts)
     
     modnames <- paste(c('m0','m1'),tax,scl,sep='_')
