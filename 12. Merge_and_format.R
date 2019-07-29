@@ -80,4 +80,11 @@ alldata <- left_join(alldata, human.impacts, by = c('pop','year'))
 DF <- alldata %>% ungroup %>% arrange(taxon,scale,year,species,pop) %>%
   select(taxon,scale,pop,year,species,div:long,D,hd:lu.div) %>% as.data.frame
 
-save(DF, file = '/Users/vincentfugere/Desktop/Data/DF_Master.RData')
+#adding family + order
+taxonomy <- seq %>% select(species,family,order) %>% distinct(species, .keep_all = T)
+rm(seq)
+taxonomy$species <- str_replace(taxonomy$species, ' ', '_')
+DF <- left_join(DF,taxonomy, by = 'species')
+DF <- select(DF, taxon,scale,pop:species,family,order,div:lu.div)
+
+save(DF, file = '~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
