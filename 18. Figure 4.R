@@ -65,13 +65,17 @@ for(i in 1:4){
   dat$pt.sig <- cut(dat$p, breaks=c(0,0.05,1),labels = 2:1)
   dat$pt.sig <- as.numeric(dat$pt.sig)
   dat$pt.col <- c(col_ln,'black')[dat$pt.sig]
+  if(tax == 'insects'){
+    dat$pt.alph <- c(0.8,0.03)[dat$pt.sig]
+  }else{
   dat$pt.alph <- c(0.8,0.1)[dat$pt.sig]
+  }
   
   emptyPlot(xlim = c(-1,1),yaxt='n',xaxt='n',ann=F, ylim=range(dat$yrs)+c(-0.5,0.5),bty='l')
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(4,17,1))
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-1,1,0.5),labels = c('-1','','0','','1'))
-  title(xlab=expression('Mann-Kendall'~tau))
-  title(ylab='number of years')
+  title(xlab='Mann-Kendall coefficient')
+  title(ylab='years in time series')
   abline(v=0,lty=2)
   points(jitter(yrs)~tau,dat,pch=16,col=alpha(pt.col,pt.alph))
   if(tax == 'birds'){legend('topright',inset=c(-0.1,-0.18),bg='white',bty='o',box.col='white',ncol = 1,xpd=NA,pch=21,col=1,pt.bg=c('grey95',col_ln),legend = c('p > 0.05','p < 0.05'))}
@@ -109,7 +113,7 @@ for(i in 1:4){
     points(fit~year,ys,col=alpha(1,ln.alpha),type='l')
   }
   plot_smooth(tsmod, view="year", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
-  mtext(text=bquote(italic('F') == .(testres[1,1])~','~italic('p') == .(testres[1,2])),side=3,adj=0.5)
+  mtext(text=bquote(atop(italic('F') == .(testres[1,1]),italic('p') == .(testres[1,2]))),side=3,adj=1)
   legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
   
   # contour plots
