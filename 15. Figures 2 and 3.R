@@ -138,7 +138,7 @@ plot.tbl$ln_wdth <-rescale(plot.tbl$Fval, to = c(1.5,4.5))
 #plot.tbl$ln_col <- cols.plot[rescale(plot.tbl$Fval, to = c(1,1000))]
 plot.tbl$ln_col <- rep(colz,each=4)
 plot.tbl$ln_type <- 1
-plot.tbl$ln_type[plot.tbl$pval > 0.01] <- 3
+plot.tbl$ln_type[plot.tbl$pval > 0.01] <- 2
 #plot.tbl$ln_col[plot.tbl$pval > 0.05] <- 'grey90'
 plot.tbl$ctype <- rep(c('1-D','2-lat','3-hd','4-lu'),4)
 plot.tbl <- arrange(plot.tbl, ctype, scale)
