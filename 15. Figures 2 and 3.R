@@ -68,12 +68,12 @@ temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
 temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun) %>%
   mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
   mutate_at(vars(pop,year,species, family, order), as.factor)
-temp <- temp %>% arrange(species,desc(nseqs)) %>% distinct(species, .keep_all = T) %>%
-  droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
-  select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
+# temp <- temp %>% arrange(species,desc(nseqs)) %>% distinct(species, .keep_all = T) %>%
+#   droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
+#   select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
 
 #temp$fit <- fitted(mod)
-newD <- list('lat' = temp$lat, 'long' = temp$long, 'D' = rep(0,nrow(temp)), 'year' = temp$year,
+newD <- list('lat' = temp$lat, 'long' = temp$long, 'D' = rep(0,nrow(temp)), 'year' = rep(2000,nrow(temp)), #use 2000 as a generic year present in all datasets
              'lat.abs' = temp$lat.abs, 'hd' = rep(0,nrow(temp)), 'p.lu' = rep(0,nrow(temp)),
              'family' = temp$family,'order' = temp$order)
 temp$fit <- predict(mod,newD,type='response',se.fit = F)
