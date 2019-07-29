@@ -14,14 +14,6 @@ scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 
-#adding family + order
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/sequence_metadata.RData')
-taxonomy <- seq %>% select(species,family,order) %>% distinct(species, .keep_all = T)
-rm(seq)
-taxonomy$species <- str_replace(taxonomy$species, ' ', '_')
-DF <- left_join(DF,taxonomy, by = 'species')
-DF <- select(DF, taxon,scale,pop:species,family,order,div:lu.div)
-
 #parameters
 min.nb.seqs <- 2
 taxa <- c('birds','fish','insects','mammals')
@@ -42,34 +34,28 @@ for(tax in taxa){
       distinct(pop, .keep_all = T)
     temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun) %>%
       mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
-      mutate_at(vars(pop,year,species), as.factor)
-    
-    mapmod <- bam(div ~ s(lat,long, bs='gp', k = 50, m = c(1,.5)) + s(D, k = 10, bs = 'tp') + s(year,bs = 're', k = 5, m=1), data = temp, family = tw, method='fREML', discrete = T)
-    #p <- str_split(family(mapmod)[[1]], '=', simplify = T)[1,2] %>% str_remove('\\)') %>% as.numeric
+      mutate_at(vars(pop,year,species, family, order), as.factor)
     
     #removing duplicate π estimates per species because max number is 1.9 π per species (on average)
     #and because at largest spatial scale, nb species == nb π values, so including a species
     #RE is equivalent to have an observation-level RE (i.e. overfitting)
     temp <- temp %>% arrange(species,desc(nseqs)) %>% distinct(species, .keep_all = T) %>%
       droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
-      select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% 
-      mutate_at(vars(family:order),list(~as.factor)) %>% as.data.frame
+      select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
     
     fullmod <- bam(div ~ s(lat,long, bs='gp', k = 50) + s(D, k = 8, bs = 'tp') + s(year,bs = 're', k = 5, m=1) +
                    s(lat.abs, k = 8, bs = 'tp') + s(hd, k=8, bs ='tp') +
                    s(p.lu, k=8, bs='tp') + s(order, bs='re',k = 5, m=1) + s(family, bs='re',k = 5, m=1),
                    data = temp, family = tw, method='fREML', discrete = T, weights = wts)
     
-    modnames <- paste(c('m0','m1'),tax,scl,sep='_')
+    modname <- paste('m1',tax,scl,sep='_')
+    assign(modname,fullmod)
     
-    assign(modnames[1],mapmod)
-    assign(modnames[2],fullmod)
+    mod <- list(get(modname))
+    names(mod) <- modname
+    models <- append(models,mod)
     
-    mods <- list(get(modnames[1]),get(modnames[2]))
-    names(mods) <- modnames
-    models <- append(models,mods)
-    
-    rm(mapmod,fullmod,temp,mods)
+    rm(fullmod,temp,mod)
     
   }
   
