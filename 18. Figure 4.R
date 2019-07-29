@@ -116,16 +116,16 @@ for(i in 1:4){
   
   newD <- expand.grid(lat=median(tsmod$model$lat),long=median(tsmod$model$long),D=median(tsmod$model$D),
                       year=seq(min(tsmod$model$year),max(tsmod$model$year),length.out = 30),
-                      hd=seq(0,1,length.out = 30), p.lu=seq(0,1,length.out = 30), pop=tsmod$model$pop[1])
+                      hd=seq(0,1,length.out = 30), p.lu=seq(0,1,length.out = 30), pop=tsmod$model$pop[1],family=tsmod$model$family[1],order=tsmod$model$order[1])
   newD$fit <- predict(tsmod,newD,exclude = 's(year,pop)', discrete=F)
   zlims <- range(newD$fit)
   rm(newD)
   
   fvisgam(tsmod, view = c('year','hd'), cond = list('p.lu' = 0), zlim=zlims,ylab='human density', add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
-  mtext(text=bquote(italic('F') == .(testres[2,1])~','~italic('p') == .(testres[2,2])),side=3,adj=0.5)
+  mtext(text=bquote(italic('F') == .(testres[2,1])~','~italic('p') == .(testres[2,2])),side=3,adj=1)
   
   fvisgam(tsmod, view = c('year','p.lu'), cond = list('hd' = 0), zlim=zlims,ylab='land use',add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,nCol=100,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
-  mtext(text=bquote(italic('F') == .(testres[3,1])~','~italic('p') == .(testres[3,2])),side=3,adj=0.5)
+  mtext(text=bquote(italic('F') == .(testres[3,1])~','~italic('p') == .(testres[3,2])),side=3,adj=1)
   
 }
 
