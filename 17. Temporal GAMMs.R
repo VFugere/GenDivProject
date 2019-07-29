@@ -62,13 +62,14 @@ for(tax in taxa){
   temp <- temp %>% filter(pop %in% popdir$pop) %>% droplevels %>%
     mutate_at(vars(D:lu.div), scale.fun) %>%
     mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
-    mutate_at(vars(pop,species), as.factor) %>%
+    mutate_at(vars(pop,species,family,order), as.factor) %>%
     mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
     as.data.frame
   
   tsmod <- bam(div ~ s(lat,long, bs='gp', k = 50) + s(D, k = 8, bs = 'tp') + s(year, k = 8, bs = 'tp') +
                  s(hd, k = 8, bs = 'tp') + s(p.lu, k = 8, bs = 'tp') +
-                 ti(year,hd, k = 8) + ti(year,p.lu, k = 8) + s(year,pop, bs = 'fs', k = 5, m = 1),
+                 ti(year,hd, k = 8) + ti(year,p.lu, k = 8) + s(year,pop, bs = 'fs', k = 5, m = 1) +
+                 s(order, bs='re',k = 5, m=1) + s(family, bs='re',k = 5, m=1),
                data = temp, family = tw, method='fREML', discrete = T, weights = wts)
   
   # summary(tsmod)
