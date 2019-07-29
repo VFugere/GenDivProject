@@ -15,9 +15,14 @@ library(rworldmap)
 library(gstat)
 library(sp)
 library(viridis)
+scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 map <- getMap(resolution = "coarse")
+
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs_2seqs.RData')
+list2env(models,envir=.GlobalEnv)
+rm(models)
 
 #parameters
 min.nb.seqs <- 2
@@ -27,14 +32,11 @@ colz <- c(1,'#E69F00','#56B4E9','#009E73')
 
 #2seqs
 ymins <- log(c(0.0003,0.001,0.0001,0.00005))
-ymaxs <- log(c(0.006,0.07,0.03,0.04))
+ymaxs <- log(c(0.01,0.07,0.03,0.04))
 
 # #5seqs
 # ymins <- c(-6.5,-8,-6.5,-9)
 # ymaxs <- c(-4,-4,-3.5,-3)
-
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/spatialGAMMs_2seqs.RData')
-list2env(models,envir=.GlobalEnv)
 
 #### Figure 2 ####
 
@@ -54,7 +56,7 @@ par(oma=c(0,0,0,0),mar=c(0,0,0,0),cex=1,mfrow=c(4,1))
 
 for(tax in taxa){
 
-mod <- get(paste('m0',tax,scl,sep='_'))
+mod <- get(paste('m1',tax,scl,sep='_'))
 
 temp <- DF %>% filter(scale == scl, taxon == tax)
 temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
@@ -63,11 +65,19 @@ temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
   mutate('year' = ceiling(median(year))) %>%
   mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
   distinct(pop, .keep_all = T)
+temp <- temp %>% mutate_at(vars(D:lu.div), scale.fun) %>%
+  mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
+  mutate_at(vars(pop,year,species, family, order), as.factor)
+temp <- temp %>% arrange(species,desc(nseqs)) %>% distinct(species, .keep_all = T) %>%
+  droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
+  select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
 
 #temp$fit <- fitted(mod)
-newD <- list('lat' = temp$lat, 'long' = temp$long, 'D' = rep(0,nrow(temp)), 'year' = temp$year)
+newD <- list('lat' = temp$lat, 'long' = temp$long, 'D' = rep(0,nrow(temp)), 'year' = temp$year,
+             'lat.abs' = temp$lat.abs, 'hd' = rep(0,nrow(temp)), 'p.lu' = rep(0,nrow(temp)),
+             'family' = temp$family,'order' = temp$order)
 temp$fit <- predict(mod,newD,type='response',se.fit = F)
-max.div <- quantile(temp$fit,0.92)
+max.div <- quantile(temp$fit,0.95)
 temp$fit[temp$fit > max.div] <- max.div
 temp$fit.sc <- rescale(temp$fit,to=c(0,100))
 
