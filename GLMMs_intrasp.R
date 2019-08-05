@@ -43,7 +43,7 @@ for(tax in taxa){
   temp <- temp %>% group_by(species) %>%
     mutate('lu.var' = var(p.lu), 'hd.var' = var(hd)) %>% 
     ungroup %>%
-    filter(lu.var > 0, hd.var > 0)
+    filter(lu.var > 0, hd.var > 0) #this only keeps species with pops that differ in human impact variables, i.e. not all from the same level of impacts
   
   temp <- temp %>%
     mutate_at(vars(D:lu.div), scale.fun) %>%
@@ -86,7 +86,7 @@ for(tax in taxa){
 
 save(intrasp.models, file = '~/Desktop/GLMMs_intrasp.Rdata')
 
-#### Sketching these GAMMs ####
+#### Sketching these GLMMs ####
 
 viridis(100)[1] -> col_ln
 
