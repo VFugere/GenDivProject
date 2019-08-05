@@ -40,3 +40,22 @@ df.yr %>% filter(year<2000, year %!in% c(1980,1990)) %>% nrow(.)/nrow(seq)
 df.yr$lag <- df.yr$year - df.yr$hyde.yr
 mean(df.yr$lag)
 sd(df.yr$lag)
+
+#how many species have more than one pop per year?
+pops <- data.frame()
+
+for(tax in taxa){
+  
+  for(scl in scales){
+    
+    temp <- DF %>% filter(scale == scl, taxon == tax)
+    temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+      mutate('year' = as.numeric(year))
+    temp$sp.yr <- paste(temp$species,temp$year,sep='_')
+    pops.t <- temp %>% count(sp.yr) %>% filter(n > 1)
+    
+    results <- data.frame('tax'=tax,'scale'=scl,'n.species'=nrow(pops.t))
+    pops <- rbind(pops,results)
+    
+  }
+}
