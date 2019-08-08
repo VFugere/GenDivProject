@@ -82,8 +82,8 @@ for(tax in taxa){
                  ti(year,hd, k = 8) +
                  ti(year,p.lu, k = 8) +
                  s(year,pop, bs = 'fs', k = 5, m = 1) +
-                 s(order, bs='re',k = 5, m=1) +
-                 s(family, bs='re',k = 5, m=1),
+                 s(order, bs='re') +
+                 s(family, bs='re'),
                data = temp, family = tw, method='fREML', discrete = T, weights = wts)
   
   # summary(tsmod)
