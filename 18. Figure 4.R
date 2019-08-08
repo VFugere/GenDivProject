@@ -107,8 +107,9 @@ for(i in 1:4){
                        hd=median(tsmod$model$hd),
                        p.lu=median(tsmod$model$p.lu),
                        year=xs,
-                       pop=focalpop)
-    
+                       pop=focalpop,
+                       order=popdat$order[1],
+                       family=popdat$family[1])
     ys <- get_predictions(tsmod, cond = conditions, se=F, print.summary = F) 
     points(fit~year,ys,col=alpha(1,ln.alpha),type='l')
   }
