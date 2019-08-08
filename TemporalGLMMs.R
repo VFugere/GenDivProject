@@ -33,7 +33,7 @@ for(tax in taxa){
     select(-n.years) %>%
     rename('n.years' = n) %>%
     select(taxon:ncomps,n.years,lat:lu.div) %>%
-    filter(n.years > min.nb.years) %>%
+    filter(n.years >= min.nb.years) %>%
     mutate('year' = as.numeric(year))
   
   #removing duplicate pops per species because nb species == nb pops (almost),
