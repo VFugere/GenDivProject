@@ -17,7 +17,7 @@ library(Kendall)
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 
 #parameters
-min.nb.seqs <- 2
+min.nb.seqs <- 2 #if I change this, min.nb.year no longer works because need to recompute after filtration steps (see GLMMs code). No need to implement this as 2 seqs is the max i can use to have enough bird TS
 min.nb.years <- 4
 taxa <- c('birds','fish','insects','mammals')
 scl <- '1000'
