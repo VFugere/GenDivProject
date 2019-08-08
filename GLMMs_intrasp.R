@@ -54,16 +54,15 @@ for(tax in taxa){
     as.data.frame
   
   mod <- cpglmm(div ~
-               lat.abs +
-               hd +
-               p.lu +
-                 (hd|species) +
-                 (p.lu|species) +
-                 (1|year) +
-                 (1|family) +
-                 (1|order) +
-                 (1|species),
-             data = temp, weights = wts)
+                  lat.abs +
+                  hd +
+                  p.lu +
+                  (hd-1|species) +
+                  (p.lu-1|species) +
+                  (1|year) +
+                  (1|order/family) +
+                  (1|species),
+                data = temp, weights = wts)
   
   # plot(mod)
   # summary(mod)
@@ -84,14 +83,16 @@ for(tax in taxa){
   
 }
 
-save(intrasp.models, file = '~/Desktop/GLMMs_intrasp.Rdata')
+save(intrasp.models, file = '~/Desktop/spatialGLMMs.Rdata')
 
 #### Sketching these GLMMs ####
 
 viridis(100)[1] -> col_ln
 
-pdf('~/Desktop/GLMMs_intrasp.pdf',width=4.5,height=8.5,pointsize = 8)
+pdf('~/Desktop/spatialGLMMs.pdf',width=4.5,height=8.5,pointsize = 8)
 par(mfrow=c(4,2),cex=1,mar=c(4,1,1,1),oma=c(1,2.8,0,0))
+
+ylims <- rbind(c(-8,-3.5),c(-7.5,-4),c(-8.5,-1),c(-7,-2))
 
 for(i in 1:4){
   
@@ -100,10 +101,11 @@ for(i in 1:4){
   spmod<-get(paste('m1',tax,'10',sep='_'))
   
   modsum <- summary(spmod)
-  testres <- modsum$coefs[c('hd','p.lu'),c('t value')]
-  testres <- round(testres,2)
+  testres <- modsum$coefs[c('hd','p.lu'),c('Estimate','Std. Error')]
+  low <- round(testres[,1]-1.96*testres[,2],2)
+  high <- round(testres[,1]+1.96*testres[,2],2)
   
-  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=c(-9,-2),bty='l')
+  plotfunctions::emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=ylims[i,],bty='l')
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-10,0,1))
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels=c('0','0.25','0.5','0.75','1'))
   if(tax == 'mammals'){title(xlab='human density (scaled)',cex=1.2)}
@@ -112,9 +114,9 @@ for(i in 1:4){
   for(focalsp in levels(spmod$frame$species)){
     spdat <- spmod$frame %>% filter(species == focalsp)
     xs <- seq(min(spdat$hd),max(spdat$hd),by=0.01)
-    conditions <- expand.grid(lat.abs=0,
+    conditions <- expand.grid(lat.abs=median(spmod$frame$lat.abs),
                        hd=xs,
-                       p.lu=0,
+                       p.lu=median(spmod$frame$p.lu),
                        species=focalsp,
                        order=spdat$order[1],
                        family=spdat$family[1],
@@ -123,13 +125,14 @@ for(i in 1:4){
     points(log(ys)~xs,col=alpha(1,ln.alpha),type='l')
   }
   xs <- seq(0,1,by=0.01)
-  ys <- fixef(spmod)[1] + fixef(spmod)[3]*xs
+  ys <- fixef(spmod)[1] + (fixef(spmod)[2]*median(spmod$frame$lat.abs)) + fixef(spmod)[3]*xs + (fixef(spmod)[4]*median(spmod$frame$p.lu))
   lines(ys~xs,lwd=3,col=col_ln)
-  mtext(text=bquote(italic('t') == .(testres[1])),side=3,adj=1)
+  
+  legend('topright', bty='n', legend = paste0('[',low[1],',',high[1],']'))
   
   ## land use
   
-  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=c(-9,-2),bty='l')
+  plotfunctions::emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=ylims[i,],bty='l')
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-10,0,1))
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels=c('0','0.25','0.5','0.75','1'))
   if(tax == 'mammals'){title(xlab='land use intensity (scaled)',cex=1.2)}
@@ -138,8 +141,8 @@ for(i in 1:4){
   for(focalsp in levels(spmod$frame$species)){
     spdat <- spmod$frame %>% filter(species == focalsp)
     xs <- seq(min(spdat$p.lu),max(spdat$p.lu),by=0.01)
-    conditions <- expand.grid(lat.abs=0,
-                              hd=0,
+    conditions <- expand.grid(lat.abs=median(spmod$frame$lat.abs),
+                              hd=median(spmod$frame$hd),
                               p.lu=xs,
                               species=focalsp,
                               order=spdat$order[1],
@@ -149,9 +152,9 @@ for(i in 1:4){
     points(log(ys)~xs,col=alpha(1,ln.alpha),type='l')
   }
   xs <- seq(0,1,by=0.01)
-  ys <- fixef(spmod)[1] + fixef(spmod)[4]*xs
+  ys <- fixef(spmod)[1] + (fixef(spmod)[2]*median(spmod$frame$lat.abs)) + fixef(spmod)[4]*xs + (fixef(spmod)[3]*median(spmod$frame$hd))
   lines(ys~xs,lwd=3,col=col_ln)
-  mtext(text=bquote(italic('t') == .(testres[2])),side=3,adj=1)
+  legend('topright', bty='n', legend = paste0('[',low[2],',',high[2],']'))
   
 }
 
