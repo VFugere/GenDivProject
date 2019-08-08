@@ -84,7 +84,7 @@ for(tax in taxa){
                  s(year,pop, bs = 'fs', k = 5, m = 1) +
                  s(order, bs='re') +
                  s(family, bs='re'),
-               data = temp, family = tw, method='fREML', discrete = T, weights = wts)
+               data = temp, family = tw, method='fREML', discrete = T, weights = wts, nthreads = 2)
   
   # summary(tsmod)
   # anova(tsmod)

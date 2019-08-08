@@ -46,6 +46,9 @@ for(tax in taxa){
     ungroup %>%
     filter(lu.var > 0, hd.var > 0)
   
+  #temp <- temp[1:100,] #to subset data when testing parallelization. 
+  # Disabling multi-threading and using 2 threads is best with my Intel i7-7660U
+  
   temp <- temp %>%
     mutate_at(vars(D:lu.div), scale.fun) %>%
     mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
@@ -57,15 +60,15 @@ for(tax in taxa){
   mod <- bam(div ~
                #s(lat,long, bs='gp', k = 50) +
                #s(D, k = 8, bs = 'tp') +
-               s(lat.abs, k=8) +
-               s(hd, k = 8, bs = 'tp') +
-               s(p.lu, k = 8, bs = 'tp') +
+               s(lat.abs, k=6) +
+               s(hd, k = 6, bs = 'tp') +
+               s(p.lu, k = 6, bs = 'tp') +
                s(hd,species, bs = 'fs', k = 6, m = 1) +
                s(p.lu,species, bs = 'fs', k = 6, m = 1) +
-               s(year, bs = 're', k = 5, m=1) +
-               s(order, bs='re',k = 5, m=1) +
-               s(family, bs='re',k = 5, m=1),
-             data = temp, family = tw, method='fREML', discrete = T, weights = wts)
+               s(year, bs = 're') +
+               s(order, bs='re') +
+               s(family, bs='re'),
+             data = temp, family = tw, method='fREML', discrete = T, weights = wts, nthreads=2)
   
   # plot(mod)
   # summary(mod)

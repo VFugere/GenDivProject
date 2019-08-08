@@ -1,0 +1,512 @@
+library(scales)
+library(viridis)
+library(Kendall)
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
+#parameters
+min.nb.seqs <- 2
+min.nb.years <- 4
+taxa <- c('birds','fish','insects','mammals')
+scl <- '1000'
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs.RData')
+list2env(models,envir=.GlobalEnv)
+rm(models)
+#### Getting Mann-Kendall coefficient for each time series
+MKtau <- function(x){MannKendall(x)$tau}
+MKp <- function(x){MannKendall(x)$sl}
+mk.coefs <- data.frame()
+for(tax in taxa){
+temp <- DF %>% filter(scale == scl, taxon == tax) %>%
+filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+add_count(pop) %>%
+select(-n.years) %>%
+rename('n.years' = n) %>%
+select(taxon:ncomps,n.years,lat:lu.div) %>%
+filter(n.years >= min.nb.years) %>%
+mutate('year' = as.numeric(year)) %>%
+group_by(pop) %>%
+summarize('yrs' = median(n.years), 'tau' = MKtau(div), 'p' = MKp(div))
+temp$taxon <- tax
+mk.coefs <- bind_rows(mk.coefs,temp)
+rm(temp)
+}
+#### Figure 4 ####
+ylims_all <- rbind(c(-9,-3),c(-9,-3),c(-9,-2),c(-7,-2.5))
+viridis(100)[1] -> col_ln
+pdf('~/Desktop/Fig4.pdf',width=8.5,height=8.5,pointsize = 8)
+par(mfrow=c(4,4),cex=1,mar=c(4,4,2,2),oma=c(1,1,1,1))
+for(i in 1:4){
+tax <- taxa[i]
+# MK plot
+dat <- filter(mk.coefs, taxon == tax)
+dat$pt.sig <- cut(dat$p, breaks=c(0,0.05,1),labels = 2:1)
+dat$pt.sig <- as.numeric(dat$pt.sig)
+dat$pt.col <- c(col_ln,'black')[dat$pt.sig]
+if(tax == 'insects'){
+dat$pt.alph <- c(0.8,0.05)[dat$pt.sig]
+}else{
+dat$pt.alph <- c(0.8,0.1)[dat$pt.sig]
+}
+emptyPlot(xlim = c(-1,1),yaxt='n',xaxt='n',ann=F, ylim=range(dat$yrs)+c(-0.5,0.5),bty='l')
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(4,17,1))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-1,1,0.5),labels = c('-1','','0','','1'))
+title(xlab='Mann-Kendall coefficient')
+title(ylab='years in time series')
+abline(v=0,lty=2)
+points(jitter(yrs)~tau,dat,pch=16,col=alpha(pt.col,pt.alph))
+if(tax == 'birds'){legend('topright',inset=c(-0.1,-0.18),bg='white',bty='o',box.col='white',ncol = 1,xpd=NA,pch=21,col=1,pt.bg=c('grey95',col_ln),legend = c('p > 0.05','p < 0.05'))}
+# GAMM fit
+ylims <- ylims_all[i,]
+tsmod<-get(paste('m1',tax,'1000',sep='_'))
+modsum <- summary(tsmod)
+testres <- modsum$s.table[c('s(year)','ti(year,hd)','ti(year,p.lu)'),c('F','p-value')]
+testres[,1] <- round(testres[,1],2)
+testres[,2] <- round(testres[,2],4)
+testres[testres[,2] == 0,2] <- 0.0001
+rsq <- round(modsum$r.sq,2)
+emptyPlot(xlim = range(tsmod$model$year),yaxt='n',xaxt='n',ann=F, ylim=ylims,bty='l')
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-9,-2,1))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+title(xlab='year')
+title(ylab=expression(log[e]~COI~diversity~(hat(pi))),line=2.8)
+ifelse(tax == 'insects', assign('ln.alpha',0.05), assign('ln.alpha',0.2))
+for(focalpop in levels(tsmod$model$pop)){
+popdat <- tsmod$model %>% filter(pop == focalpop)
+xs <- seq(min(popdat$year),max(popdat$year),by=1)
+conditions <- list(lat=median(tsmod$model$lat),
+long=median(tsmod$model$long),
+D=median(tsmod$model$D),
+hd=median(tsmod$model$hd),
+p.lu=median(tsmod$model$p.lu),
+year=xs,
+pop=focalpop,
+order=popdat$order[1],
+family=popdat$family[1])
+ys <- get_predictions(tsmod, cond = conditions, se=F, print.summary = F)
+points(fit~year,ys,col=alpha(1,ln.alpha),type='l')
+}
+plot_smooth(tsmod, view="year", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
+mtext(text=bquote(atop(italic('F') == .(testres[1,1]),italic('p') == .(testres[1,2]))),side=3,adj=1)
+legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
+# contour plots
+newD <- expand.grid(lat=median(tsmod$model$lat),long=median(tsmod$model$long),D=median(tsmod$model$D),
+year=seq(min(tsmod$model$year),max(tsmod$model$year),length.out = 30),
+hd=seq(0,1,length.out = 30), p.lu=seq(0,1,length.out = 30), pop=tsmod$model$pop[1],family=tsmod$model$family[1],order=tsmod$model$order[1])
+newD$fit <- predict(tsmod,newD,exclude = 's(year,pop)', discrete=F)
+zlims <- range(newD$fit)
+rm(newD)
+fvisgam(tsmod, view = c('year','hd'), cond = list('p.lu' = 0), zlim=zlims,ylab='human density', add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
+mtext(text=bquote(italic('F') == .(testres[2,1])~','~italic('p') == .(testres[2,2])),side=3,adj=1)
+fvisgam(tsmod, view = c('year','p.lu'), cond = list('hd' = 0), zlim=zlims,ylab='land use',add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,nCol=100,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
+mtext(text=bquote(italic('F') == .(testres[3,1])~','~italic('p') == .(testres[3,2])),side=3,adj=1)
+}
+?predict.bam
+## Vincent Fugere 2019
+# Code for Figures 4: time series analysis
+rm(list=ls())
+options(tibble.print_max = 100, scipen = 999)
+library(tidyverse)
+library(magrittr)
+library(RColorBrewer)
+library(mgcv)
+library(itsadug)
+library(scales)
+library(viridis)
+library(Kendall)
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
+#parameters
+min.nb.seqs <- 2
+min.nb.years <- 4
+taxa <- c('birds','fish','insects','mammals')
+scl <- '1000'
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs.RData')
+list2env(models,envir=.GlobalEnv)
+rm(models)
+#### Getting Mann-Kendall coefficient for each time series
+MKtau <- function(x){MannKendall(x)$tau}
+MKp <- function(x){MannKendall(x)$sl}
+mk.coefs <- data.frame()
+for(tax in taxa){
+temp <- DF %>% filter(scale == scl, taxon == tax) %>%
+filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+add_count(pop) %>%
+select(-n.years) %>%
+rename('n.years' = n) %>%
+select(taxon:ncomps,n.years,lat:lu.div) %>%
+filter(n.years >= min.nb.years) %>%
+mutate('year' = as.numeric(year)) %>%
+group_by(pop) %>%
+summarize('yrs' = median(n.years), 'tau' = MKtau(div), 'p' = MKp(div))
+temp$taxon <- tax
+mk.coefs <- bind_rows(mk.coefs,temp)
+rm(temp)
+}
+#### Figure 4 ####
+ylims_all <- rbind(c(-9,-3),c(-9,-3),c(-9,-2),c(-7,-2.5))
+viridis(100)[1] -> col_ln
+pdf('~/Desktop/Fig4.pdf',width=8.5,height=8.5,pointsize = 8)
+par(mfrow=c(4,4),cex=1,mar=c(4,4,2,2),oma=c(1,1,1,1))
+for(i in 1:4){
+tax <- taxa[i]
+# MK plot
+dat <- filter(mk.coefs, taxon == tax)
+dat$pt.sig <- cut(dat$p, breaks=c(0,0.05,1),labels = 2:1)
+dat$pt.sig <- as.numeric(dat$pt.sig)
+dat$pt.col <- c(col_ln,'black')[dat$pt.sig]
+if(tax == 'insects'){
+dat$pt.alph <- c(0.8,0.05)[dat$pt.sig]
+}else{
+dat$pt.alph <- c(0.8,0.1)[dat$pt.sig]
+}
+emptyPlot(xlim = c(-1,1),yaxt='n',xaxt='n',ann=F, ylim=range(dat$yrs)+c(-0.5,0.5),bty='l')
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(4,17,1))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-1,1,0.5),labels = c('-1','','0','','1'))
+title(xlab='Mann-Kendall coefficient')
+title(ylab='years in time series')
+abline(v=0,lty=2)
+points(jitter(yrs)~tau,dat,pch=16,col=alpha(pt.col,pt.alph))
+if(tax == 'birds'){legend('topright',inset=c(-0.1,-0.18),bg='white',bty='o',box.col='white',ncol = 1,xpd=NA,pch=21,col=1,pt.bg=c('grey95',col_ln),legend = c('p > 0.05','p < 0.05'))}
+# GAMM fit
+ylims <- ylims_all[i,]
+tsmod<-get(paste('m1',tax,'1000',sep='_'))
+modsum <- summary(tsmod)
+testres <- modsum$s.table[c('s(year)','ti(year,hd)','ti(year,p.lu)'),c('F','p-value')]
+testres[,1] <- round(testres[,1],2)
+testres[,2] <- round(testres[,2],4)
+testres[testres[,2] == 0,2] <- 0.0001
+rsq <- round(modsum$r.sq,2)
+emptyPlot(xlim = range(tsmod$model$year),yaxt='n',xaxt='n',ann=F, ylim=ylims,bty='l')
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-9,-2,1))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1)
+title(xlab='year')
+title(ylab=expression(log[e]~COI~diversity~(hat(pi))),line=2.8)
+ifelse(tax == 'insects', assign('ln.alpha',0.05), assign('ln.alpha',0.2))
+for(focalpop in levels(tsmod$model$pop)){
+popdat <- tsmod$model %>% filter(pop == focalpop)
+xs <- seq(min(popdat$year),max(popdat$year),by=1)
+conditions <- list(lat=median(tsmod$model$lat),
+long=median(tsmod$model$long),
+D=median(tsmod$model$D),
+hd=median(tsmod$model$hd),
+p.lu=median(tsmod$model$p.lu),
+year=xs,
+pop=focalpop,
+order=popdat$order[1],
+family=popdat$family[1])
+ys <- get_predictions(tsmod, cond = conditions, se=F, print.summary = F)
+points(fit~year,ys,col=alpha(1,ln.alpha),type='l')
+}
+plot_smooth(tsmod, view="year", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
+mtext(text=bquote(atop(italic('F') == .(testres[1,1]),italic('p') == .(testres[1,2]))),side=3,adj=1)
+legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
+# contour plots
+newD <- expand.grid(lat=median(tsmod$model$lat),long=median(tsmod$model$long),D=median(tsmod$model$D),
+year=seq(min(tsmod$model$year),max(tsmod$model$year),length.out = 30),
+hd=seq(0,1,length.out = 30), p.lu=seq(0,1,length.out = 30), pop=tsmod$model$pop[1],family=tsmod$model$family[1],order=tsmod$model$order[1])
+newD$fit <- predict(tsmod,newD,exclude = c('s(year,pop)','s(order)','s(family)'), discrete=F)
+zlims <- range(newD$fit)
+rm(newD)
+fvisgam(tsmod, view = c('year','hd'), cond = list('p.lu' = 0), zlim=zlims,ylab='human density', add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
+mtext(text=bquote(italic('F') == .(testres[2,1])~','~italic('p') == .(testres[2,2])),side=3,adj=1)
+fvisgam(tsmod, view = c('year','p.lu'), cond = list('hd' = 0), zlim=zlims,ylab='land use',add.color.legend=T,hide.label=T,xlab = 'year',plot.type = 'contour', lwd=1.5,nCol=100,color = viridis(100), main = NULL,rm.ranef = T,dec=1)
+mtext(text=bquote(italic('F') == .(testres[3,1])~','~italic('p') == .(testres[3,2])),side=3,adj=1)
+}
+dev.off()
+## Vincent Fugere 2019
+# time series GAMMs testing land use impacts on gen div
+rm(list=ls())
+options(tibble.print_max = 100, scipen = 999)
+library(tidyverse)
+library(magrittr)
+library(cplm)
+library(scales)
+library(RColorBrewer)
+library(viridis)
+scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
+scale.fun2 <-function(x){y <- scales::rescale(x, to = c(0,1)); return(y)}
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
+#parameters
+min.nb.seqs <- 2
+min.nb.years <- 4
+taxa <- c('birds','fish','insects','mammals')
+#scales <- c('10','100','1000','10000')
+scl <- '1000'
+models <- list()
+for(tax in taxa){
+temp <- DF %>% filter(scale == scl, taxon == tax)
+temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+add_count(pop) %>%
+select(-n.years) %>%
+rename('n.years' = n) %>%
+select(taxon:ncomps,n.years,lat:lu.div) %>%
+filter(n.years >= min.nb.years) %>%
+mutate('year' = as.numeric(year))
+#removing duplicate pops per species because nb species == nb pops (almost),
+popdir <- temp %>% group_by(species, pop) %>% summarize('seqs' = sum(nseqs), 'yrs' = median(n.years))
+popdir <- popdir %>% arrange(species, desc(yrs)) %>% distinct(species, .keep_all = T) %>% droplevels
+temp <- temp %>%
+filter(pop %in% popdir$pop) %>%
+droplevels %>%
+mutate_at(vars(D:lu.div), scale.fun) %>%
+mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>%
+mutate_at(vars(year,lat,long), scale.fun2) %>%
+mutate_at(vars(pop,species,family,order), as.factor) %>%
+mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
+as.data.frame
+tsmod <- cpglmm(div ~
+lat*long +
+D +
+year +
+hd +
+p.lu +
+year:hd +
+year:p.lu +
+(1+year|species) +
+(1|order/family),
+data = temp,
+weights = wts,
+control=list('max.iter' = 100000))
+modname <- paste('m1',tax,scl,sep='_')
+assign(modname,tsmod)
+mod <- list(get(modname))
+names(mod) <- modname
+models <- append(models,mod)
+rm(tsmod,mod,temp)
+}
+save(models, file = '~/Desktop/temporalGLMMs.Rdata')
+#### Sketching these GLMMs ####
+pdf('~/Desktop/temporalGLMMs.pdf',width=5,height=5,pointsize = 8)
+viridis(100)[1] -> col_ln
+par(mfrow=c(2,2),cex=1,mar=c(2,2,1,1),oma=c(3,3,0,0))
+xlims <- rbind(c(1985,2015),c(1994,2016),c(1988,2016),c(1984,2015))
+ylims <- rbind(c(-8,-2),c(-8,-3),c(-10,-1),c(-6.5,-2.5))
+for(i in 1:4){
+tax <- taxa[i]
+spmod<-get(paste('m1',tax,'1000',sep='_'))
+modsum <- summary(spmod)
+testres <- modsum$coefs[c('year'),c('Estimate','Std. Error')]
+low <- round(testres[1]-1.96*testres[2],2)
+high <- round(testres[1]+1.96*testres[2],2)
+plotfunctions::emptyPlot(xlim = range(spmod$frame$year),yaxt='n',xaxt='n',ann=F, ylim=ylims[i,],bty='l')
+axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-12,0,1))
+xlabs <- xlims[i,]
+xlabs <- round(seq(xlabs[1],xlabs[2],length.out = 3))
+axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.5,1),labels = as.character(xlabs))
+ifelse(tax == 'insects', assign('ln.alpha',0.05), assign('ln.alpha',0.2))
+for(focalsp in levels(spmod$frame$species)){
+spdat <- spmod$frame %>% filter(species == focalsp)
+xs <- seq(min(spdat$year),max(spdat$year),by=0.01)
+conditions <- expand.grid(lat=median(spmod$frame$lat),
+long=median(spmod$frame$long),
+D=median(spmod$frame$D),
+hd=median(spmod$frame$hd),
+p.lu=median(spmod$frame$p.lu),
+year=xs,
+species=focalsp,
+order=spdat$order[1],
+family=spdat$family[1])
+ys <- predict(spmod, newdata = conditions)
+points(log(ys)~xs,col=alpha(1,ln.alpha),type='l')
+}
+xs <- seq(min(spmod$frame$year),max(spmod$frame$year),by=0.01)
+ys <- fixef(spmod)[1] +
+median(spmod$frame$lat)*fixef(spmod)[2] +
+median(spmod$frame$long)*(fixef(spmod)[3] + median(spmod$frame$lat)*fixef(spmod)[8])+
+median(spmod$frame$D)*fixef(spmod)[4] +
+fixef(spmod)[5]*xs +
+median(spmod$frame$hd)*(fixef(spmod)[6] + xs*fixef(spmod)[9]) +
+median(spmod$frame$p.lu)*(fixef(spmod)[7] + xs*fixef(spmod)[10])
+lines(ys~xs,lwd=3,col=col_ln)
+# fixef.low <- as.numeric(modsum$coefs[,1] - 1.96*modsum$coefs[,2])
+# fixef.high <- as.numeric(modsum$coefs[,1] + 1.96*modsum$coefs[,2])
+#
+# ys <- fixef.low[1] +
+#   median(spmod$frame$lat)*fixef.low[2] +
+#   median(spmod$frame$long)*(fixef.low[3] + median(spmod$frame$lat)*fixef.low[8])+
+#   median(spmod$frame$D)*fixef.low[4] +
+#   fixef.low[5]*xs +
+#   median(spmod$frame$hd)*(fixef.low[6] + xs*fixef.low[9]) +
+#   median(spmod$frame$p.lu)*(fixef.low[7] + xs*fixef.low[10])
+# lines(ys~xs,lwd=1,lty=2,col=col_ln)
+#
+# ys <- fixef.high[1] +
+#   median(spmod$frame$lat)*fixef.high[2] +
+#   median(spmod$frame$long)*(fixef.high[3] + median(spmod$frame$lat)*fixef.high[8])+
+#   median(spmod$frame$D)*fixef.high[4] +
+#   fixef.high[5]*xs +
+#   median(spmod$frame$hd)*(fixef.high[6] + xs*fixef.high[9]) +
+#   median(spmod$frame$p.lu)*(fixef.high[7] + xs*fixef.high[10])
+# lines(ys~xs,lwd=1,lty=2,col=col_ln)
+legend('topright', bty='n', legend = paste0('[',low,',',high,']'))
+}
+mtext(expression(log[e]~COI~diversity~(hat(pi))),at=.5,side=2,outer=T,cex=1.2,line=1)
+mtext('year',at=.5,side=1,outer=T,cex=1.2,line=1)
+dev.off()
+## Vincent Fugere 2019
+# time series GAMMs testing land use impacts on gen div
+rm(list=ls())
+options(tibble.print_max = 100, scipen = 999)
+library(tidyverse)
+library(magrittr)
+library(cplm)
+library(scales)
+library(RColorBrewer)
+library(viridis)
+scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
+#parameters
+min.nb.seqs <- 2
+min.nb.pops <- 4
+taxa <- c('birds','fish','insects','mammals')
+#scales <- c('10','100','1000','10000')
+scl <- '10'
+intrasp.models <- list()
+tax <- taxa[1]
+temp <- DF %>% filter(scale == scl, taxon == tax)
+temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+mutate('year' = as.numeric(year))
+temp$sp.yr <- paste(temp$species,temp$year,sep='_')
+temp <- add_count(temp, sp.yr)
+temp <- filter(temp, n >= min.nb.pops)
+#even in insects, the vast majority of populations from species with > 1 pop available
+#have a single data point. Thus, retain one point per pop, but multiple data points per species
+temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
+mutate('year' = ceiling(median(year))) %>%
+mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
+distinct(pop, .keep_all = T)
+temp <- temp %>% group_by(species) %>%
+mutate('lu.var' = var(p.lu), 'hd.var' = var(hd)) %>%
+ungroup %>%
+filter(lu.var > 0, hd.var > 0) #this only keeps species with pops that differ in human impact variables, i.e. not all from the same level of impacts
+temp <- temp %>%
+mutate_at(vars(D:lu.div), scale.fun) %>%
+mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>%
+mutate_at(vars(sp.yr,pop,species,family,order,year), as.factor) %>%
+droplevels %>%
+mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
+as.data.frame
+mod <- cpglmm(div ~
+lat.abs +
+hd +
+p.lu +
+(hd|species) +
+(p.lu|species) +
+(1|year) +
+(1|family) +
+(1|order) +
+(1|species),
+data = temp, weights = wts)
+summary(mod)
+mod <- cpglmm(div ~
+lat.abs +
+hd +
+p.lu +
+(1+hd+p.lu|species) +
+#(p.lu|species) +
+(1|year) +
+(1|order/family),
+#(1|species),
+data = temp, weights = wts)
+summary(mod)
+mod <- cpglmm(div ~
+lat.abs +
+hd +
+p.lu +
+(hd|species) +
+(p.lu|species) +
+(1|year) +
+(1|order/family),
+#(1|species),
+data = temp, weights = wts)
+summary(mod)
+mod <- cpglmm(div ~
+lat.abs +
+hd +
+p.lu +
+(hd-1|species) +
+(p.lu|species) +
+(1|year) +
+(1|order/family),
+#(1|species),
+data = temp, weights = wts)
+summary(mod)
+mod <- cpglmm(div ~
+lat.abs +
+hd +
+p.lu +
+(hd-1|species) +
+(p.lu-1|species) +
+(1|year) +
+(1|order/family) +
+(1|species),
+data = temp, weights = wts)
+summary(mod)
+## Vincent Fugere 2019
+# time series GAMMs testing land use impacts on gen div
+rm(list=ls())
+options(tibble.print_max = 100, scipen = 999)
+library(tidyverse)
+library(magrittr)
+library(cplm)
+library(scales)
+library(RColorBrewer)
+library(viridis)
+scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
+#parameters
+min.nb.seqs <- 2
+min.nb.pops <- 4
+taxa <- c('birds','fish','insects','mammals')
+#scales <- c('10','100','1000','10000')
+scl <- '10'
+intrasp.models <- list()
+for(tax in taxa){
+temp <- DF %>% filter(scale == scl, taxon == tax)
+temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+mutate('year' = as.numeric(year))
+temp$sp.yr <- paste(temp$species,temp$year,sep='_')
+temp <- add_count(temp, sp.yr)
+temp <- filter(temp, n >= min.nb.pops)
+#even in insects, the vast majority of populations from species with > 1 pop available
+#have a single data point. Thus, retain one point per pop, but multiple data points per species
+temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
+mutate('year' = ceiling(median(year))) %>%
+mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
+distinct(pop, .keep_all = T)
+temp <- temp %>% group_by(species) %>%
+mutate('lu.var' = var(p.lu), 'hd.var' = var(hd)) %>%
+ungroup %>%
+filter(lu.var > 0, hd.var > 0) #this only keeps species with pops that differ in human impact variables, i.e. not all from the same level of impacts
+temp <- temp %>%
+mutate_at(vars(D:lu.div), scale.fun) %>%
+mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>%
+mutate_at(vars(sp.yr,pop,species,family,order,year), as.factor) %>%
+droplevels %>%
+mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
+as.data.frame
+mod <- cpglmm(div ~
+lat.abs +
+hd +
+p.lu +
+(hd-1|species) +
+(p.lu-1|species) +
+(1|year) +
+(1|order/family) +
+(1|species),
+data = temp, weights = wts)
+# plot(mod)
+# summary(mod)
+#
+# re <- resid(mod)
+# plot(re~temp$lat)
+# plot(re~temp$long) # not including a lat-long smooth does not seem to be a problem
+#
+modname <- paste('m1',tax,scl,sep='_')
+assign(modname,mod)
+mod <- list(get(modname))
+names(mod) <- modname
+intrasp.models <- append(intrasp.models,mod)
+rm(mod,temp)
+}
+save(intrasp.models, file = '~/Desktop/GLMMs_intrasp.Rdata')
+viridis(100)[1] -> col_ln
+ylims <- rbind(c(-8,-2),c(-8,-3),c(-10,-1),c(-6.5,-2.5))

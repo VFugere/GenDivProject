@@ -64,7 +64,7 @@ for(tax in taxa){
                      s(year,bs = 're', k = 5, m=1) +
                      s(order, bs='re',k = 5, m=1) +
                      s(family, bs='re',k = 5, m=1),
-                   data = temp, family = tw, method='fREML', discrete = T, weights = wts)
+                   data = temp, family = tw, method='fREML', discrete = T, weights = wts, nthreads = 2)
     
     modname <- paste('m1',tax,scl,sep='_')
     assign(modname,fullmod)
