@@ -66,10 +66,17 @@ for(tax in taxa){
     mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
     as.data.frame
   
-  tsmod <- bam(div ~ s(lat,long, bs='gp', k = 50) + s(D, k = 8, bs = 'tp') + s(year, k = 8, bs = 'tp') +
-                 s(hd, k = 8, bs = 'tp') + s(p.lu, k = 8, bs = 'tp') +
-                 ti(year,hd, k = 8) + ti(year,p.lu, k = 8) + s(year,pop, bs = 'fs', k = 5, m = 1) +
-                 s(order, bs='re',k = 5, m=1) + s(family, bs='re',k = 5, m=1),
+  tsmod <- bam(div ~
+                 s(lat,long, bs='gp', k = 50) +
+                 s(D, k = 8, bs = 'tp') +
+                 s(year, k = 8, bs = 'tp') +
+                 s(hd, k = 8, bs = 'tp') +
+                 s(p.lu, k = 8, bs = 'tp') +
+                 ti(year,hd, k = 8) +
+                 ti(year,p.lu, k = 8) +
+                 s(year,pop, bs = 'fs', k = 5, m = 1) +
+                 s(order, bs='re',k = 5, m=1) +
+                 s(family, bs='re',k = 5, m=1),
                data = temp, family = tw, method='fREML', discrete = T, weights = wts)
   
   # summary(tsmod)
@@ -87,4 +94,4 @@ for(tax in taxa){
   
 }
 
-save(models, file = '~/Desktop/temporalGAMMs.Rdata')
+save(models, file = '~/Desktop/temporalGAMMs_5seqs.Rdata')
