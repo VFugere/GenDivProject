@@ -12,6 +12,7 @@ library(scales)
 library(RColorBrewer)
 library(viridis)
 scale.fun <-function(x){y <- scales::rescale(log1p(x), to = c(0,1)); return(y)}
+scale.fun2 <-function(x){y <- scales::rescale(x, to = c(0,1)); return(y)}
 
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 
@@ -37,14 +38,15 @@ for(tax in taxa){
   temp <- temp %>%
     filter(pop %in% popdir$pop) %>%
     droplevels %>%
-    mutate_at(vars(year,D:lu.div), scale.fun) %>%
-    mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
+    mutate_at(vars(D:lu.div), scale.fun) %>%
+    mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>%
+    mutate_at(vars(year,lat,long), scale.fun2) %>% 
     mutate_at(vars(pop,species,family,order), as.factor) %>%
     mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
     as.data.frame
   
   tsmod <- cpglmm(div ~ 
-                    lat.abs +
+                    lat*long +
                     D +
                     year +
                     hd +
@@ -76,6 +78,7 @@ viridis(100)[1] -> col_ln
 par(mfrow=c(2,2),cex=1,mar=c(2,2,1,1),oma=c(3,3,0,0))
 
 xlims <- rbind(c(1985,2015),c(1994,2016),c(1988,2016),c(1984,2015))
+ylims <- rbind(c(-9,-4),c(-7,-3),c(-12,-4),c(-7,-3))
 
 for(i in 1:4){
   
@@ -88,8 +91,8 @@ for(i in 1:4){
   low <- round(testres[1]-1.96*testres[2],2)
   high <- round(testres[1]+1.96*testres[2],2)
   
-  plotfunctions::emptyPlot(xlim = range(spmod$frame$year),yaxt='n',xaxt='n',ann=F, ylim=c(-9,-2),bty='l')
-  axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-10,0,1))
+  plotfunctions::emptyPlot(xlim = range(spmod$frame$year),yaxt='n',xaxt='n',ann=F, ylim=ylims[i,],bty='l')
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-12,0,1))
   xlabs <- xlims[i,]
   xlabs <- round(seq(xlabs[1],xlabs[2],length.out = 3))
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.5,1),labels = as.character(xlabs))
@@ -97,7 +100,8 @@ for(i in 1:4){
   for(focalsp in levels(spmod$frame$species)){
     spdat <- spmod$frame %>% filter(species == focalsp)
     xs <- seq(min(spdat$year),max(spdat$year),by=0.01)
-    conditions <- expand.grid(lat.abs=0,
+    conditions <- expand.grid(lat=0,
+                              long=0,
                               D=0,
                               hd=0,
                               p.lu=0,
@@ -109,7 +113,7 @@ for(i in 1:4){
     points(log(ys)~xs,col=alpha(1,ln.alpha),type='l')
   }
   xs <- seq(min(spmod$frame$year),max(spmod$frame$year),by=0.01)
-  ys <- fixef(spmod)[1] + fixef(spmod)[4]*xs
+  ys <- fixef(spmod)[1] + fixef(spmod)[5]*xs
   lines(ys~xs,lwd=3,col=col_ln)
   legend('topright', bty='n', legend = paste0('[',low,',',high,']'))
 }
