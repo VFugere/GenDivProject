@@ -17,12 +17,12 @@ library(Kendall)
 load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RData')
 
 #parameters
-min.nb.seqs <- 2 #if I change this, min.nb.year no longer works because need to recompute after filtration steps (see GLMMs code). No need to implement this as 2 seqs is the max i can use to have enough bird TS
+min.nb.seqs <- 2
 min.nb.years <- 4
 taxa <- c('birds','fish','insects','mammals')
 scl <- '1000'
 
-load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs_4yrs_2seqs.RData')
+load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/temporalGAMMs.RData')
 list2env(models,envir=.GlobalEnv)
 rm(models)
 
@@ -36,7 +36,12 @@ mk.coefs <- data.frame()
 for(tax in taxa){
   
   temp <- DF %>% filter(scale == scl, taxon == tax) %>%
-    filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div), n.years >= min.nb.years) %>%
+    filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+    add_count(pop) %>%
+    select(-n.years) %>%
+    rename('n.years' = n) %>%
+    select(taxon:ncomps,n.years,lat:lu.div) %>%
+    filter(n.years >= min.nb.years) %>%
     mutate('year' = as.numeric(year)) %>%
     group_by(pop) %>%
     summarize('yrs' = median(n.years), 'tau' = MKtau(div), 'p' = MKp(div))
@@ -66,7 +71,7 @@ for(i in 1:4){
   dat$pt.sig <- as.numeric(dat$pt.sig)
   dat$pt.col <- c(col_ln,'black')[dat$pt.sig]
   if(tax == 'insects'){
-    dat$pt.alph <- c(0.8,0.03)[dat$pt.sig]
+    dat$pt.alph <- c(0.8,0.05)[dat$pt.sig]
   }else{
   dat$pt.alph <- c(0.8,0.1)[dat$pt.sig]
   }
