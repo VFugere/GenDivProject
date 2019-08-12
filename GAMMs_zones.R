@@ -29,9 +29,6 @@ DF$zone <- as.ordered(DF$zone)
 
 ## GAMMS
 
-tax<-taxa[4]
-scl<-scales[2]
-
 for(tax in taxa){
   
   for(scl in scales){
@@ -77,6 +74,13 @@ for(tax in taxa){
   
 }
 
+models <- list(m1_birds_10,m1_birds_100,m1_birds_1000,m1_birds_10000,
+               m1_fish_10,m1_fish_100,m1_fish_1000,m1_fish_10000,
+               m1_insects_10,m1_insects_100,m1_insects_1000,m1_insects_10000,
+               m1_mammals_10,m1_mammals_100,m1_mammals_1000,m1_mammals_10000)
+
+save(models, file = '~/Desktop/zoneGAMMs.Rdata')
+
 #### sketching these GAMMs ####
 
 pdf('~/Desktop/SuppFig_zoneGAMMs_HD.pdf',width=7,height=7,pointsize = 8,onefile = T)
@@ -117,25 +121,25 @@ for(i in 1:4){
   
   # hd
   
-  plot_smooth(m1, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m1, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='10 km',bty='n')
   legend('bottomleft',bty='n',legend=bquote(italic('p') == .(m1res[1])))
   
-  plot_smooth(m2, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m2, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='100 km',bty='n')
   legend('bottomleft',bty='n',legend=bquote(italic('p') == .(m2res[1])))
   
-  plot_smooth(m3, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m3, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='1000 km',bty='n')
   legend('bottomleft',bty='n',legend=bquote(italic('p') == .(m3res[1])))
   
-  plot_smooth(m4, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m4, view="hd", plot_all="zone", cond=list(D=0,long=0), col=c('black','royalblue2'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='10 000 km',bty='n')
@@ -188,25 +192,25 @@ for(i in 1:4){
   
   # p.lu
   
-  plot_smooth(m1, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m1, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='10 km',bty='n')
   legend('bottomleft',bty='n',legend=bquote(italic('p') == .(m1res[1])))
   
-  plot_smooth(m2, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m2, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='100 km',bty='n')
   legend('bottomleft',bty='n',legend=bquote(italic('p') == .(m2res[1])))
   
-  plot_smooth(m3, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m3, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='1000 km',bty='n')
   legend('bottomleft',bty='n',legend=bquote(italic('p') == .(m3res[1])))
   
-  plot_smooth(m4, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = F, h0=NA)
+  plot_smooth(m4, view="p.lu", plot_all="zone", cond=list(D=0,long=0), col=c('black','forestgreen'), xlim=c(0,1), rm.ranef=T, se=1.96, yaxt='n',xaxt='n',ann=F, hide.label = T,main=NULL,rug=F,bty='l',legend_plot_all = T, h0=NA)
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=-10:0,labels=-10:0)
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1))
   legend('topleft',legend='10 000 km',bty='n')
