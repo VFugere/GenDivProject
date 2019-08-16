@@ -68,9 +68,9 @@ for(tax in taxa){
   mod <- bam(div ~
                #s(lat,long, bs='gp', k = 50) +
                #s(D, k = 8, bs = 'tp') +
-               s(lat.abs, k=6) +
-               s(hd, k = 6, bs = 'tp') +
-               s(p.lu, k = 6, bs = 'tp') +
+               s(lat.abs, k=8) +
+               s(hd, k = 8, bs = 'tp') +
+               s(p.lu, k = 8, bs = 'tp') +
                s(lat.abs, species, bs = 'fs', k = 6, m = 1) +
                s(hd, species, bs = 'fs', k = 6, m = 1) +
                s(p.lu, species, bs = 'fs', k = 6, m = 1) +
