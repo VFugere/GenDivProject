@@ -18,7 +18,7 @@ load('~/Google Drive/Recherche/Intraspecific genetic diversity/Data/DF_Master.RD
 
 #parameters
 min.nb.seqs <- 2
-min.nb.pops <- 4
+min.nb.pops <- 5
 taxa <- c('birds','fish','insects','mammals')
 #scales <- c('10','100','1000','10000')
 scl <- '10'
@@ -30,21 +30,25 @@ for(tax in taxa){
   temp <- DF %>% filter(scale == scl, taxon == tax)
   temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
     mutate('year' = as.numeric(year))
-  temp$sp.yr <- paste(temp$species,temp$year,sep='_')
-  temp <- add_count(temp, sp.yr)
-  temp <- filter(temp, n >= min.nb.pops)
+  #temp$sp.yr <- paste(temp$species,temp$year,sep='_')
+  #temp <- add_count(temp, sp.yr)
   
   #even in insects, the vast majority of populations from species with > 1 pop available
   #have a single data point. Thus, retain one point per pop, but multiple data points per species
   temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
     mutate('year' = ceiling(median(year))) %>%
     mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
-    distinct(pop, .keep_all = T)
+    distinct(pop, .keep_all = T) %>%
+    mutate('lat.abs' = abs(lat))
+  
+  temp <- add_count(temp, species)
+  temp <- filter(temp, n >= min.nb.pops)
   
   temp <- temp %>% group_by(species) %>%
-    mutate('lu.var' = var(p.lu), 'hd.var' = var(hd)) %>% 
+    mutate('lu.var' = var(p.lu), 'hd.var' = var(hd), 'lat.var' = max(lat.abs)-min(lat.abs)) %>%
+    #mutate('div' = scale(div, scale=T)) %>%
     ungroup %>%
-    filter(lu.var > 0, hd.var > 0)
+    filter(lu.var > 0, hd.var > 0, lat.var >= 10)
   
   #temp <- temp[1:100,] #to subset data when testing parallelization. 
   # Disabling multi-threading and using 2 threads is best with my Intel i7-7660U
@@ -52,7 +56,7 @@ for(tax in taxa){
   temp <- temp %>%
     mutate_at(vars(D:lu.div), scale.fun) %>%
     mutate('lat.abs' = rescale(abs(lat),to=c(0,1))) %>% 
-    mutate_at(vars(sp.yr,pop,species,family,order,year), as.factor) %>%
+    mutate_at(vars(pop,species,family,order,year), as.factor) %>%
     droplevels %>%
     mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
     as.data.frame
@@ -63,16 +67,17 @@ for(tax in taxa){
                s(lat.abs, k=6) +
                s(hd, k = 6, bs = 'tp') +
                s(p.lu, k = 6, bs = 'tp') +
-               s(hd,species, bs = 'fs', k = 6, m = 1) +
-               s(p.lu,species, bs = 'fs', k = 6, m = 1) +
+               s(lat.abs, species, bs = 'fs', k = 6, m = 1) +
+               s(hd, species, bs = 'fs', k = 6, m = 1) +
+               s(p.lu, species, bs = 'fs', k = 6, m = 1) +
                s(year, bs = 're') +
                s(order, bs='re') +
                s(family, bs='re'),
-             data = temp, family = tw, method='fREML', discrete = T, weights = wts, nthreads=2)
+             data = temp, method='fREML', family='tw',discrete = T, weights = wts, nthreads=2)
   
-  # plot(mod)
-  # summary(mod)
-  # 
+  #plot(mod)
+  #summary(mod)
+
   # re <- resid(mod)
   # plot(re~temp$lat)
   # plot(re~temp$long) # not including a lat-long smooth does not seem to be a problem
@@ -95,10 +100,14 @@ save(intrasp.models, file = '~/Desktop/spatialGAMMs_intrasp.Rdata')
 
 #### Sketching these GAMMs ####
 
+load('~/Desktop/spatialGAMMs_intrasp.RData')
+list2env(intrasp.models,envir=.GlobalEnv)
+rm(intrasp.models)
+
 viridis(100)[1] -> col_ln
 
-pdf('~/Desktop/spatialGAMMs_intrasp.pdf',width=4.5,height=8.5,pointsize = 8)
-par(mfrow=c(4,2),cex=1,mar=c(4,1,1,1),oma=c(1,2.8,0,0))
+pdf('~/Desktop/spatialGAMMs_intrasp.pdf',width=6.75,height=8.5,pointsize = 8)
+par(mfrow=c(4,3),cex=1,mar=c(4,1,1,1),oma=c(1,2.8,0,0))
 
 for(i in 1:4){
   
@@ -108,19 +117,46 @@ for(i in 1:4){
   
   spmod<-get(paste('m1',tax,'10',sep='_'))
   
-  modsum <- summary(spmod)
-  testres <- modsum$s.table[c('s(hd)','s(p.lu)'),c('F','p-value')]
+  modsum <- summary(spmod, re.test=F)
+  testres <- modsum$s.table[c('s(lat.abs)','s(hd)','s(p.lu)'),c('F','p-value')]
   testres[,1] <- round(testres[,1],2)
   testres[,2] <- round(testres[,2],4)
   testres[testres[,2] == 0,2] <- 0.0001
   rsq <- round(modsum$r.sq,2)
   
-  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=range(log(spmod$fitted.values)),bty='l')
+  ylims <- predict(spmod,se.fit=T)
+  ylims <- range(c(ylims$fit+1.96*ylims$se.fit,ylims$fit-1.96*ylims$se.fit))
+  
+  #latitude
+  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=ylims,bty='l')
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-10,0,1))
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels=c('0','0.25','0.5','0.75','1'))
-  if(tax == 'mammals'){title(xlab='human density (scaled)',cex=1.2)}
+  if(tax == 'mammals'){title(xlab='absolute latitude (scaled)',cex=1.5)}
   #title(ylab=expression(log[e]~COI~diversity~(hat(pi))),line=2.8)
-  ifelse(tax == 'insects', assign('ln.alpha',0.05), assign('ln.alpha',0.2))
+  ifelse(tax == 'insects', assign('ln.alpha',0.1), assign('ln.alpha',0.2))
+  for(focalsp in levels(spmod$model$species)){
+    spdat <- spmod$model %>% filter(species == focalsp)
+    xs <- seq(min(spdat$lat.abs),max(spdat$lat.abs),by=0.01)
+    conditions <- list(lat.abs=xs,
+                       hd=median(spmod$model$hd),
+                       p.lu=median(spmod$model$p.lu),
+                       species=focalsp,
+                       order=spdat$order[1],
+                       family=spdat$family[1],
+                       year=spdat$year[1])
+    ys <- get_predictions(spmod, cond = conditions, se=F, print.summary = F, rm.ranef=F) 
+    points(fit~lat.abs,ys,col=alpha(1,ln.alpha),type='l')
+  }
+  plot_smooth(spmod, view="lat.abs", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
+  legend('topright',bty='n',legend=bquote(atop(italic('F') == .(testres[1,1]),italic('p') == .(testres[1,2]))))
+  
+  #HD
+  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=ylims,bty='l')
+  axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-10,0,1))
+  axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels=c('0','0.25','0.5','0.75','1'))
+  if(tax == 'mammals'){title(xlab='human density (scaled)',cex=1.5)}
+  #title(ylab=expression(log[e]~COI~diversity~(hat(pi))),line=2.8)
+  ifelse(tax == 'insects', assign('ln.alpha',0.1), assign('ln.alpha',0.2))
   for(focalsp in levels(spmod$model$species)){
     spdat <- spmod$model %>% filter(species == focalsp)
     xs <- seq(min(spdat$hd),max(spdat$hd),by=0.01)
@@ -135,17 +171,17 @@ for(i in 1:4){
     points(fit~hd,ys,col=alpha(1,ln.alpha),type='l')
   }
   plot_smooth(spmod, view="hd", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
-  mtext(text=bquote(atop(italic('F') == .(testres[1,1]),italic('p') == .(testres[1,2]))),side=3,adj=1)
+  legend('topright',bty='n',legend=bquote(atop(italic('F') == .(testres[2,1]),italic('p') == .(testres[2,2]))))
   #legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
   
   ## land use
   
-  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=range(log(spmod$fitted.values)),bty='l')
+  emptyPlot(xlim = c(0,1),yaxt='n',xaxt='n',ann=F, ylim=ylims,bty='l')
   axis(2,cex.axis=1,lwd=0,lwd.ticks=1,at=seq(-10,0,1))
   axis(1,cex.axis=1,lwd=0,lwd.ticks=1,at=c(0,0.25,0.5,0.75,1),labels=c('0','0.25','0.5','0.75','1'))
-  if(tax == 'mammals'){title(xlab='land use intensity (scaled)',cex=1.2)}
+  if(tax == 'mammals'){title(xlab='land use intensity (scaled)',cex=1.5)}
   #title(ylab=expression(log[e]~COI~diversity~(hat(pi))),line=2.8)
-  ifelse(tax == 'insects', assign('ln.alpha',0.05), assign('ln.alpha',0.2))
+  ifelse(tax == 'insects', assign('ln.alpha',0.1), assign('ln.alpha',0.2))
   for(focalsp in levels(spmod$model$species)){
     spdat <- spmod$model %>% filter(species == focalsp)
     xs <- seq(min(spdat$p.lu),max(spdat$p.lu),by=0.01)
@@ -160,7 +196,7 @@ for(i in 1:4){
     points(fit~p.lu,ys,col=alpha(1,ln.alpha),type='l')
   }
   plot_smooth(spmod, view="p.lu", lwd=3, col=col_ln, rm.ranef=T, se=1.96, rug=F, add=T)
-  mtext(text=bquote(atop(italic('F') == .(testres[2,1]),italic('p') == .(testres[2,2]))),side=3,adj=1)
+  legend('topright',bty='n',legend=bquote(atop(italic('F') == .(testres[3,1]),italic('p') == .(testres[3,2]))))
   legend('bottomright',bty='n',legend=bquote(model~italic(R)^2 == .(rsq)))
   
 }
