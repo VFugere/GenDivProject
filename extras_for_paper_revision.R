@@ -59,3 +59,76 @@ for(tax in taxa){
     
   }
 }
+
+# what is the average latitudinal variation within species with multiple populations of data?
+
+min.nb.pops <- 5
+scl <- '10'
+
+pdf('~/Desktop/latranges.pdf',width = 6,height = 6,pointsize = 8)
+par(mfrow=c(2,2),cex=1)
+
+for(tax in taxa){
+  
+  temp <- DF %>% filter(scale == scl, taxon == tax)
+  temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+    mutate('year' = as.numeric(year))
+  
+  #retain one point per pop, but multiple data points per species
+  temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
+    mutate('year' = ceiling(median(year))) %>%
+    mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
+    distinct(pop, .keep_all = T) %>%
+    mutate('lat.abs' = abs(lat))
+  
+  temp <- add_count(temp, species)
+  temp <- filter(temp, n >= min.nb.pops)
+  
+  lat.vars <- temp %>% group_by(species) %>% summarize('lat.var' = max(lat.abs)-min(lat.abs))
+  hist(lat.vars$lat.var, breaks=50,main=tax,xlab='latitude range across populations',ylab='species')
+  
+}
+
+dev.off()
+
+# how many species show evidence of change in div within species along lat gradient?
+
+library(cplm)
+
+results <- data.frame()
+
+for(tax in taxa){
+  
+  temp <- DF %>% filter(scale == scl, taxon == tax)
+  temp %<>% filter(nseqs >= min.nb.seqs, div < mean(div)+10*sd(div)) %>%
+    mutate('year' = as.numeric(year))
+  
+  #retain one point per pop, but multiple data points per species
+  temp %<>% group_by(pop) %>% mutate_at(vars(lat,long), median) %>%
+    mutate('year' = ceiling(median(year))) %>%
+    mutate_at(vars(div:ncomps,D:lu.div), mean) %>% ungroup %>%
+    distinct(pop, .keep_all = T) %>%
+    mutate('lat.abs' = abs(lat))
+  
+  temp <- add_count(temp, species)
+  temp <- filter(temp, n >= min.nb.pops)
+  
+  temp <- temp %>% group_by(species) %>%
+    mutate('lu.var' = var(p.lu), 'hd.var' = var(hd), 'lat.var' = max(lat.abs)-min(lat.abs)) %>%
+    #mutate('div' = scale(div, scale=T)) %>%
+    ungroup %>%
+    filter(lu.var > 0, hd.var > 0, lat.var >= 10)
+  
+  temp$species <-as.factor(temp$species)
+  
+  for(focalsp in levels(temp$species)){
+    spdat <- filter(temp, species == focalsp)
+    mod <- cpglm(div~lat.abs, data=spdat)
+    rez <- as.data.frame(summary(mod)$coefficients)
+    rez <- rez[2,c(1,4)]
+    rez <- cbind(rez,tax,focalsp,nrow(spdat))
+    results <- rbind(results,rez)
+  }
+  
+}
+
