@@ -43,9 +43,15 @@ for(tax in taxa){
       droplevels %>% mutate('wts' = log(nseqs)/mean(log(nseqs))) %>%
       select(-taxon,-scale,-nseqs, -ncomps,-n.years, -lu.var) %>% as.data.frame
     
-    fullmod <- bam(div ~ s(lat,long, bs='gp', k = 50) + s(D, k = 8, bs = 'tp') + s(year,bs = 're', k = 5, m=1) +
-                   s(lat.abs, k = 8, bs = 'tp') + s(hd, k=8, bs ='tp') +
-                   s(p.lu, k=8, bs='tp') + s(order, bs='re',k = 5, m=1) + s(family, bs='re',k = 5, m=1),
+    fullmod <- bam(div ~ 
+                     s(lat,long, bs='gp', k = 50) + 
+                     s(D, k = 8, bs = 'tp') + 
+                     s(year,bs = 're', k = 5, m=1) +
+                     s(lat.abs, k = 8, bs = 'tp') +
+                     s(hd, k=8, bs ='tp') +
+                     s(p.lu, k=8, bs='tp') + 
+                     s(order, bs='re',k = 5, m=1) +
+                     s(family, bs='re',k = 5, m=1),
                    data = temp, family = tw, method='fREML', discrete = T, weights = wts, nthreads = 2)
     
     modname <- paste('m1',tax,scl,sep='_')
