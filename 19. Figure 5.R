@@ -1,6 +1,6 @@
 ## Vincent Fugere 2019
 
-# Code for Figures 4: time series analysis
+# Code for Figures 5: time series analysis
 
 rm(list=ls())
 options(tibble.print_max = 100, scipen = 999)

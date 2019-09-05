@@ -102,7 +102,7 @@ for(tax in taxa){
 
 save(intrasp.models, file = '~/Desktop/spatialGAMMs_intrasp_CWC.Rdata')
 
-#### Sketching these GAMMs ####
+#### Sketching these GAMMs (Fig. 4) ####
 
 load('~/Desktop/spatialGAMMs_intrasp_CWC.RData')
 list2env(intrasp.models,envir=.GlobalEnv)
